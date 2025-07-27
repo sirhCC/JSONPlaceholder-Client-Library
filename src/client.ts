@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosError } from 'axios';
+import axios, { AxiosInstance, AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { 
   Post, 
   Comment, 
@@ -12,18 +12,188 @@ import {
   CommentSearchOptions,
   UserSearchOptions,
   PaginatedResponse,
-  PaginationOptions
+  PaginationOptions,
+  RequestInterceptor,
+  ResponseInterceptor,
+  ResponseErrorInterceptor,
+  RequestConfig,
+  ResponseData,
+  InterceptorOptions
 } from './types';
 
 const defaultApiUrl = 'https://jsonplaceholder.typicode.com';
 
 export class JsonPlaceholderClient {
   client: AxiosInstance;
+  private requestInterceptors: RequestInterceptor[] = [];
+  private responseInterceptors: ResponseInterceptor[] = [];
+  private responseErrorInterceptors: ResponseErrorInterceptor[] = [];
 
   constructor(baseURL: string = defaultApiUrl) {
     this.client = axios.create({
       baseURL,
+      timeout: 10000,
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
+
+    this.setupDefaultInterceptors();
+  }
+
+  private setupDefaultInterceptors(): void {
+    // Request interceptor to apply all custom request interceptors
+    this.client.interceptors.request.use(async (config) => {
+      let modifiedConfig = { ...config } as RequestConfig;
+      
+      for (const interceptor of this.requestInterceptors) {
+        modifiedConfig = await Promise.resolve(interceptor(modifiedConfig));
+      }
+      
+      return modifiedConfig as AxiosRequestConfig;
+    });
+
+    // Response interceptor to apply all custom response interceptors
+    this.client.interceptors.response.use(
+      async (response: AxiosResponse) => {
+        let modifiedResponse: ResponseData = {
+          data: response.data,
+          status: response.status,
+          statusText: response.statusText,
+          headers: response.headers as Record<string, string>,
+          config: response.config as RequestConfig
+        };
+
+        for (const interceptor of this.responseInterceptors) {
+          modifiedResponse = await Promise.resolve(interceptor(modifiedResponse));
+        }
+
+        return {
+          ...response,
+          data: modifiedResponse.data
+        };
+      },
+      async (error) => {
+        // Apply error interceptors first
+        let modifiedError = error;
+        for (const interceptor of this.responseErrorInterceptors) {
+          try {
+            modifiedError = await Promise.resolve(interceptor(modifiedError));
+            // If interceptor returns a successful response, return it
+            if (modifiedError && !modifiedError.isAxiosError && modifiedError.data !== undefined) {
+              return modifiedError;
+            }
+          } catch (interceptedError) {
+            modifiedError = interceptedError;
+          }
+        }
+
+        // Re-throw the error for normal error handling
+        throw modifiedError;
+      }
+    );
+  }
+
+  // Interceptor management methods
+  addRequestInterceptor(interceptor: RequestInterceptor): number {
+    this.requestInterceptors.push(interceptor);
+    return this.requestInterceptors.length - 1;
+  }
+
+  addResponseInterceptor(
+    onFulfilled?: ResponseInterceptor,
+    onRejected?: ResponseErrorInterceptor
+  ): number {
+    if (onFulfilled) {
+      this.responseInterceptors.push(onFulfilled);
+    }
+    if (onRejected) {
+      this.responseErrorInterceptors.push(onRejected);
+    }
+    return Math.max(this.responseInterceptors.length, this.responseErrorInterceptors.length) - 1;
+  }
+
+  removeRequestInterceptor(index: number): void {
+    if (index >= 0 && index < this.requestInterceptors.length) {
+      this.requestInterceptors.splice(index, 1);
+    }
+  }
+
+  removeResponseInterceptor(index: number): void {
+    if (index >= 0 && index < this.responseInterceptors.length) {
+      this.responseInterceptors.splice(index, 1);
+    }
+    if (index >= 0 && index < this.responseErrorInterceptors.length) {
+      this.responseErrorInterceptors.splice(index, 1);
+    }
+  }
+
+  clearInterceptors(): void {
+    this.requestInterceptors = [];
+    this.responseInterceptors = [];
+    this.responseErrorInterceptors = [];
+  }
+
+  // Utility methods for common interceptors
+  addAuthInterceptor(token: string, type: 'Bearer' | 'API-Key' = 'Bearer'): number {
+    return this.addRequestInterceptor((config) => {
+      config.headers = config.headers || {};
+      if (type === 'Bearer') {
+        config.headers.Authorization = `Bearer ${token}`;
+      } else {
+        config.headers['X-API-Key'] = token;
+      }
+      return config;
+    });
+  }
+
+  addLoggingInterceptor(logRequests = true, logResponses = true): number {
+    if (logRequests) {
+      this.addRequestInterceptor((config) => {
+        console.log(`🚀 Request: ${config.method?.toUpperCase()} ${config.url}`, {
+          headers: config.headers,
+          data: config.data
+        });
+        return config;
+      });
+    }
+
+    if (logResponses) {
+      return this.addResponseInterceptor((response) => {
+        console.log(`✅ Response: ${response.status} ${response.config.url}`, {
+          data: response.data
+        });
+        return response;
+      });
+    }
+
+    return -1;
+  }
+
+  addRetryInterceptor(options: InterceptorOptions['retry'] = { attempts: 3, delay: 1000 }): number {
+    return this.addResponseInterceptor(
+      undefined,
+      async (error) => {
+        const config = error.config;
+        
+        // Don't retry if no config or already exceeded max attempts
+        if (!config || (config.__retryCount || 0) >= (options.attempts || 3)) {
+          throw error;
+        }
+
+        config.__retryCount = (config.__retryCount || 0) + 1;
+
+        const delay = options.exponentialBackoff 
+          ? (options.delay || 1000) * Math.pow(2, config.__retryCount - 1)
+          : (options.delay || 1000);
+
+        console.log(`⚠️ Retrying request (${config.__retryCount}/${options.attempts}) after ${delay}ms...`);
+        
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        return this.client.request(config);
+      }
+    );
   }
 
   private buildQueryString(params: Record<string, any>): string {
