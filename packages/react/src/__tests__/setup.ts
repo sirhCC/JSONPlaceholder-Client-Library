@@ -1,7 +1,23 @@
 import '@testing-library/jest-dom';
 
+// Extend Jest matchers to include jest-dom
+declare global {
+  namespace jest {
+    interface Matchers<R> {
+      toBeInTheDocument(): R;
+      toHaveTextContent(text: string): R;
+      toBeVisible(): R;
+      toBeDisabled(): R;
+      toBeEnabled(): R;
+    }
+  }
+  
+  var IntersectionObserver: any;
+  var global: any;
+}
+
 // Mock IntersectionObserver
-(global as any).IntersectionObserver = class IntersectionObserver {
+global.IntersectionObserver = class IntersectionObserver {
   constructor() {}
   disconnect() {}
   observe() {}
