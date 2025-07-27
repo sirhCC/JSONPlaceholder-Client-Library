@@ -325,6 +325,7 @@ export class CacheManager {
   private stats: CacheStats;
   private eventListeners: CacheEventListener[] = [];
   private backgroundRefreshPromises = new Map<string, Promise<any>>();
+  private pendingRequests = new Map<string, Promise<any>>();
 
   constructor(config: Partial<CacheConfig> = {}) {
     this.config = {
@@ -628,8 +629,41 @@ export class CacheManager {
     }
     
     // No cached data or force refresh, fetch fresh data
-    const freshData = await fetchFn();
-    await this.set(key, freshData, options);
+    const freshData = await this.getOrFetch(key, fetchFn, options);
     return freshData;
+  }
+
+  /**
+   * Get data from cache or fetch it, handling concurrent requests
+   */
+  async getOrFetch<T>(
+    key: string,
+    fetchFn: () => Promise<T>,
+    options: CacheOptions = {}
+  ): Promise<T> {
+    // Check if there's already a pending request for this key
+    if (this.pendingRequests.has(key)) {
+      return this.pendingRequests.get(key) as Promise<T>;
+    }
+
+    const cachedData = await this.get<T>(key);
+    if (cachedData && !options.forceRefresh) {
+      return cachedData;
+    }
+
+    // Create and store the pending request
+    const requestPromise = (async () => {
+      try {
+        const freshData = await fetchFn();
+        await this.set(key, freshData, options);
+        return freshData;
+      } finally {
+        // Remove from pending requests when done
+        this.pendingRequests.delete(key);
+      }
+    })();
+
+    this.pendingRequests.set(key, requestPromise);
+    return requestPromise;
   }
 }
