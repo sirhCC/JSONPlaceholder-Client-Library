@@ -617,9 +617,21 @@ export class CacheManager {
     fetchFn: () => Promise<T>, 
     options: CacheOptions = {}
   ): Promise<T> {
+    if (options.forceRefresh) {
+      // Force refresh - bypass cache completely and fetch fresh data
+      try {
+        const freshData = await fetchFn();
+        await this.set(key, freshData, options);
+        return freshData;
+      } catch (error) {
+        // If forced refresh fails, re-throw the error
+        throw error;
+      }
+    }
+
     const cachedData = await this.get<T>(key);
     
-    if (cachedData && !options.forceRefresh) {
+    if (cachedData) {
       // Return cached data and refresh in background if needed
       const entry = await this.storage.get<T>(key);
       if (entry && this.shouldBackgroundRefresh(entry)) {
@@ -628,7 +640,7 @@ export class CacheManager {
       return cachedData;
     }
     
-    // No cached data or force refresh, fetch fresh data
+    // No cached data, fetch fresh data
     const freshData = await this.getOrFetch(key, fetchFn, options);
     return freshData;
   }
