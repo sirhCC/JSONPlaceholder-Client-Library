@@ -1,4 +1,3 @@
-import axios from 'axios';
 import MockAdapter from 'axios-mock-adapter';
 import { JsonPlaceholderClient } from '../client';
 import { Post } from '../types';
@@ -9,7 +8,7 @@ describe('JsonPlaceholderClient', () => {
 
   beforeEach(() => {
     client = new JsonPlaceholderClient();
-    mock = new MockAdapter(axios);
+    mock = new MockAdapter(client.client);
   });
 
   afterEach(() => {
@@ -44,7 +43,7 @@ describe('JsonPlaceholderClient', () => {
   it('should update a post', async () => {
     const updatedPost: Partial<Post> = { title: 'Updated Post' };
     const returnedPost: Post = { id: 1, userId: 1, title: 'Updated Post', body: 'This is a test post.' };
-    mock.onPut('/posts/1').reply(200, returnedPost);
+    mock.onPatch('/posts/1').reply(200, returnedPost);
 
     const result = await client.updatePost(1, updatedPost);
     expect(result).toEqual(returnedPost);
