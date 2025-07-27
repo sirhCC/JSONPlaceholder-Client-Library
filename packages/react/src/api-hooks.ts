@@ -87,7 +87,7 @@ export function usePostsByUser(
 export function useComments(options?: UseQueryOptions<Comment[]>): UseQueryResult<Comment[]> {
   const client = useJsonPlaceholderClient();
   
-  const queryFn = useCallback(() => client.getComments(), [client]);
+  const queryFn = useCallback(() => client.searchComments({}), [client]);
   
   return useQuery('comments', queryFn, {
     staleTime: 5 * 60 * 1000, // 5 minutes
