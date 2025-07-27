@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import { 
   Post, 
   Comment, 
@@ -57,7 +57,7 @@ export class JsonPlaceholderClient {
         modifiedConfig = await Promise.resolve(interceptor(modifiedConfig));
       }
       
-      return modifiedConfig as AxiosRequestConfig;
+      return modifiedConfig as InternalAxiosRequestConfig;
     });
 
     // Response interceptor to apply all custom response interceptors
@@ -375,7 +375,7 @@ export class JsonPlaceholderClient {
       case 400:
         const validationErrors = this.extractValidationErrors(responseData);
         throw new ValidationError(
-          responseData?.message || 'Validation failed',
+          (responseData as any)?.message || 'Validation failed',
           validationErrors,
           responseData
         );
@@ -389,7 +389,7 @@ export class JsonPlaceholderClient {
       case 503:
       case 504:
         throw new ServerError(
-          responseData?.message || 'Server error occurred',
+          (responseData as any)?.message || 'Server error occurred',
           responseData
         );
       
