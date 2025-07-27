@@ -12,42 +12,9 @@ import {
   CacheEventType 
 } from '../types';
 
-// Mock localStorage and sessionStorage for testing
-const mockStorage = () => {
-  const storage: { [key: string]: string } = {};
-  return {
-    getItem: jest.fn((key: string) => storage[key] || null),
-    setItem: jest.fn((key: string, value: string) => {
-      storage[key] = value;
-    }),
-    removeItem: jest.fn((key: string) => {
-      delete storage[key];
-    }),
-    clear: jest.fn(() => {
-      Object.keys(storage).forEach(key => delete storage[key]);
-    }),
-    get length() {
-      return Object.keys(storage).length;
-    },
-    key: jest.fn((index: number) => Object.keys(storage)[index] || null)
-  };
-};
-
 describe('Cache System Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
-    // Mock browser environment for jsdom
-    if (typeof window !== 'undefined') {
-      Object.defineProperty(window, 'localStorage', {
-        value: mockStorage(),
-        writable: true
-      });
-      Object.defineProperty(window, 'sessionStorage', {
-        value: mockStorage(),
-        writable: true
-      });
-    }
   });
 
   describe('MemoryCacheStorage', () => {
@@ -290,13 +257,14 @@ describe('Cache System Tests', () => {
         return Promise.resolve(callCount === 1 ? initialData : updatedData);
       });
 
-      // Set initial data
-      await cacheManager.set('test-key', initialData);
+      // First call to cache initial data
+      await cacheManager.getWithSWR('test-key', fetchFn);
+      expect(fetchFn).toHaveBeenCalledTimes(1);
       
-      // Force refresh should fetch new data
+      // Force refresh should fetch new data (second call returns updated data)
       const result = await cacheManager.getWithSWR('test-key', fetchFn, { forceRefresh: true });
       expect(result).toEqual(updatedData);
-      expect(fetchFn).toHaveBeenCalledTimes(1);
+      expect(fetchFn).toHaveBeenCalledTimes(2);
     });
 
     test('should track cache statistics', async () => {
