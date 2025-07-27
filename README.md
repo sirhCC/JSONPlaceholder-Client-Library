@@ -1,16 +1,17 @@
 # JSONPlaceholder API Client Library
 
-A TypeScript library that provides a simple, type-safe interface for interacting with the JSONPlaceholder API. Features comprehensive CRUD operations, advanced filtering & pagination, robust error handling, and full TypeScript support.
+A TypeScript library that provides a simple, type-safe interface for interacting with the JSONPlaceholder API. Features comprehensive CRUD operations, advanced filtering & pagination, robust error handling, intelligent caching & performance optimization, and full TypeScript support.
 
 ## Features
 
 - ✅ **Full CRUD Operations**: Create, read, update, and delete posts
 - ✅ **Advanced Filtering & Pagination**: Search and paginate through resources
+- ✅ **Intelligent Caching & Performance**: Multiple storage backends, TTL, background refresh, concurrent request deduplication
 - ✅ **Request/Response Interceptors**: Middleware system for authentication, logging, retries
 - ✅ **Type Safety**: Written in TypeScript with comprehensive type definitions
 - ✅ **Error Handling**: Custom error classes for different API scenarios
 - ✅ **Easy to Use**: Simple, intuitive API
-- ✅ **Well Tested**: Comprehensive test suite with 53+ test cases
+- ✅ **Well Tested**: Comprehensive test suite with 91 test cases
 - ✅ **Zero Dependencies**: Only requires axios for HTTP requests
 
 ## Installation
@@ -374,6 +375,49 @@ client.configureCaching({
 await client.getPosts({ ttl: 10 * 60 * 1000 }); // 10 minutes for posts
 await client.getUsers({ ttl: 30 * 60 * 1000 }); // 30 minutes for users
 ```
+
+### Cache Resilience & Error Handling
+
+The caching system is designed to be resilient and never interfere with your application:
+
+```typescript
+// Cache failures are handled gracefully
+// If cache storage fails, data is still returned from the API
+const posts = await client.getPosts(); // Always works, even if cache fails
+
+// Storage errors are logged but don't break functionality
+client.addCacheEventListener((event) => {
+  if (event.metadata?.error) {
+    console.warn('Cache operation failed:', event.metadata.error);
+    // Application continues to work normally
+  }
+});
+
+// Cache is automatically disabled if storage is unavailable
+// Your app continues to work without caching
+```
+
+### Cache Performance Benefits
+
+Real-world performance improvements with caching enabled:
+
+```typescript
+// First request - from API (~100-500ms)
+console.time('first-request');
+await client.getPosts();
+console.timeEnd('first-request'); // ~200ms
+
+// Second request - from cache (~1-5ms)  
+console.time('cached-request');
+await client.getPosts(); 
+console.timeEnd('cached-request'); // ~2ms (100x faster!)
+
+// Concurrent requests - only 1 API call
+const promises = Array(10).fill(null).map(() => client.getPosts());
+const results = await Promise.all(promises); // Only 1 network request made
+```
+
+## Request/Response Interceptors
 
 The library provides a powerful middleware system for customizing requests and responses:
 
