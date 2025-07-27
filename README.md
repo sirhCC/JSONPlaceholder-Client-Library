@@ -91,7 +91,280 @@ const paginatedUsers = await client.getUsersWithPagination({
 });
 ```
 
-## Request/Response Interceptors
+## Caching & Performance System
+
+The library includes a powerful caching and performance optimization system with multiple storage options, intelligent cache invalidation, and background refresh capabilities.
+
+### Cache Configuration
+
+```typescript
+import { JsonPlaceholderClient } from 'jsonplaceholder-client-lib';
+
+// Initialize with caching enabled
+const client = new JsonPlaceholderClient('https://jsonplaceholder.typicode.com', {
+  enabled: true,
+  defaultTTL: 5 * 60 * 1000, // 5 minutes
+  maxSize: 1000, // Maximum number of cached entries
+  storage: 'memory', // 'memory' | 'localStorage' | 'sessionStorage'
+  backgroundRefresh: true,
+  refreshThreshold: 0.8, // Refresh when 80% of TTL has passed
+  keyPrefix: 'jsonph_cache_'
+});
+```
+
+### Storage Options
+
+#### Memory Storage (Default)
+- Fast in-memory caching
+- Cleared when page reloads
+- Best for short-term caching
+
+#### localStorage Storage
+- Persistent across browser sessions
+- Survives page reloads and browser restarts
+- Limited by browser storage quotas
+
+#### sessionStorage Storage
+- Persistent within browser session
+- Cleared when tab is closed
+- Good for session-based caching
+
+```typescript
+// Configure storage type
+client.configureCaching({
+  storage: 'localStorage', // Persist across sessions
+  maxSize: 500,
+  defaultTTL: 10 * 60 * 1000 // 10 minutes
+});
+```
+
+### Cache Options per Request
+
+```typescript
+// Force refresh (bypass cache)
+const freshPosts = await client.getPosts({ forceRefresh: true });
+
+// Custom TTL for specific request
+const posts = await client.getPosts({ ttl: 30 * 1000 }); // 30 seconds
+
+// Stale-while-revalidate strategy
+const posts = await client.getPosts({ 
+  staleWhileRevalidate: true 
+}); // Return cached data immediately, fetch fresh data in background
+
+// Background refresh for specific request
+const posts = await client.getPosts({ 
+  backgroundRefresh: true 
+});
+```
+
+### Prefetching
+
+Improve performance by prefetching data before it's needed:
+
+```typescript
+// Prefetch posts
+await client.prefetchPosts();
+
+// Prefetch user data
+await client.prefetchUser(1);
+
+// Prefetch comments for a post
+await client.prefetchComments(1);
+
+// Use prefetched data (will be served from cache)
+const posts = await client.getPosts(); // Fast - served from cache
+const user = await client.getUser(1); // Fast - served from cache
+```
+
+### Cache Management
+
+```typescript
+// Get cache statistics
+const stats = client.getCacheStats();
+console.log(`Hit rate: ${(stats.hitRate * 100).toFixed(1)}%`);
+console.log(`Cache size: ${stats.entryCount}/${stats.maxSize}`);
+console.log(`Total requests: ${stats.totalRequests}`);
+
+// Clear entire cache
+await client.clearCache();
+
+// Delete specific cache entry
+const cacheKey = 'GET|/posts|';
+await client.deleteCacheEntry(cacheKey);
+
+// Enable/disable caching
+client.enableCache(false); // Disable caching
+client.enableCache(true);  // Re-enable caching
+```
+
+### Cache Events
+
+Monitor cache operations with event listeners:
+
+```typescript
+client.addCacheEventListener((event) => {
+  switch (event.type) {
+    case 'hit':
+      console.log(`Cache hit for ${event.key}`);
+      break;
+    case 'miss':
+      console.log(`Cache miss for ${event.key}`);
+      break;
+    case 'set':
+      console.log(`Data cached for ${event.key}`);
+      break;
+    case 'evict':
+      console.log(`Cache entry evicted: ${event.key}`);
+      break;
+    case 'refresh':
+      console.log(`Background refresh for ${event.key}`);
+      break;
+  }
+});
+```
+
+### Background Refresh
+
+Automatically refresh cached data in the background to keep it fresh:
+
+```typescript
+// Configure background refresh
+client.configureCaching({
+  backgroundRefresh: true,
+  refreshThreshold: 0.8 // Start refreshing when 80% of TTL has elapsed
+});
+
+// When you request data that's approaching expiry,
+// the cached data is returned immediately while fresh data
+// is fetched in the background for future requests
+const posts = await client.getPosts(); // Returns cached data + triggers background refresh
+```
+
+### Performance Optimizations
+
+#### Concurrent Request Deduplication
+Multiple simultaneous requests for the same resource are automatically deduplicated:
+
+```typescript
+// These 5 concurrent requests will result in only 1 API call
+const promises = Array(5).fill(null).map(() => client.getPosts());
+const results = await Promise.all(promises); // All return the same data
+```
+
+#### Intelligent Cache Keys
+Cache keys are automatically generated based on request parameters:
+
+```typescript
+// These will have different cache entries
+await client.getPosts(); // Key: "GET|/posts|"
+await client.getPostsWithPagination({ _page: 1 }); // Key: "GET|/posts|_page=1"
+await client.getPostsWithPagination({ _page: 2 }); // Key: "GET|/posts|_page=2"
+```
+
+#### Cache Statistics and Monitoring
+```typescript
+const stats = client.getCacheStats();
+
+console.log({
+  hitRate: stats.hitRate, // Percentage of requests served from cache
+  hits: stats.hits, // Number of cache hits
+  misses: stats.misses, // Number of cache misses
+  evictions: stats.evictions, // Number of entries evicted due to size limits
+  backgroundRefreshes: stats.backgroundRefreshes, // Number of background refreshes
+  totalRequests: stats.totalRequests, // Total cache requests
+  currentSize: stats.currentSize, // Current cache size in bytes
+  entryCount: stats.entryCount, // Number of cached entries
+  averageResponseTime: stats.averageResponseTime // Average response time
+});
+```
+
+### Advanced Usage Examples
+
+#### Production Configuration
+```typescript
+const client = new JsonPlaceholderClient('https://api.example.com', {
+  enabled: true,
+  defaultTTL: 5 * 60 * 1000, // 5 minutes
+  maxSize: 1000,
+  storage: 'localStorage', // Persist across sessions
+  backgroundRefresh: true,
+  refreshThreshold: 0.7, // Aggressive refresh at 70% of TTL
+  keyPrefix: 'myapp_cache_'
+});
+
+// Monitor cache performance
+client.addCacheEventListener((event) => {
+  if (event.type === 'evict') {
+    console.warn('Cache at capacity, consider increasing maxSize');
+  }
+  
+  // Send metrics to monitoring service
+  analytics.track('cache_event', {
+    type: event.type,
+    key: event.key,
+    timestamp: event.timestamp
+  });
+});
+```
+
+#### Cache Warming Strategy
+```typescript
+async function warmCache() {
+  // Prefetch critical data at application startup
+  await Promise.all([
+    client.prefetchPosts(),
+    client.prefetchUsers(),
+    client.prefetchUser(1), // Current user
+    client.prefetchComments(1) // Popular post comments
+  ]);
+  
+  console.log('Cache warmed with critical data');
+}
+
+// Call during app initialization
+await warmCache();
+```
+
+#### Conditional Caching
+```typescript
+async function getPostsWithSmartCaching(userId?: number) {
+  const options = {
+    // Cache user-specific data for shorter time
+    ttl: userId ? 2 * 60 * 1000 : 10 * 60 * 1000, // 2 min vs 10 min
+    // Use background refresh for frequently accessed data
+    backgroundRefresh: !userId // Only for general posts
+  };
+  
+  return userId 
+    ? await client.getPostsByUser(userId, {}, options)
+    : await client.getPosts(options);
+}
+```
+
+### Cache Invalidation Strategies
+
+```typescript
+// Manual invalidation after data modification
+async function createPost(postData) {
+  const newPost = await client.createPost(postData);
+  
+  // Invalidate related cache entries
+  await client.deleteCacheEntry('GET|/posts|');
+  await client.deleteCacheEntry(`GET|/users/${postData.userId}/posts|`);
+  
+  return newPost;
+}
+
+// Time-based invalidation with different TTLs
+client.configureCaching({
+  defaultTTL: 5 * 60 * 1000 // 5 minutes for most data
+});
+
+// Override TTL for specific data types
+await client.getPosts({ ttl: 10 * 60 * 1000 }); // 10 minutes for posts
+await client.getUsers({ ttl: 30 * 60 * 1000 }); // 30 minutes for users
+```
 
 The library provides a powerful middleware system for customizing requests and responses:
 
