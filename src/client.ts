@@ -260,24 +260,17 @@ export class JsonPlaceholderClient {
   ): Promise<T> {
     const key = this.cacheManager.generateKey(cacheKey);
 
-    if (options.forceRefresh) {
-      const data = await requestFn();
-      await this.cacheManager.set(key, data, options);
-      return data;
-    }
-
     if (options.staleWhileRevalidate) {
       return this.cacheManager.getWithSWR(key, requestFn, options);
     }
 
-    const cachedData = await this.cacheManager.get<T>(key);
-    if (cachedData) {
-      return cachedData;
+    try {
+      // Use getOrFetch to handle concurrent requests properly
+      return await this.cacheManager.getOrFetch(key, requestFn, options);
+    } catch (cacheError) {
+      console.warn('Cache operation failed, falling back to direct request:', cacheError);
+      return await requestFn();
     }
-
-    const freshData = await requestFn();
-    await this.cacheManager.set(key, freshData, options);
-    return freshData;
   }
 
   // Utility methods for common interceptors
@@ -551,10 +544,20 @@ export class JsonPlaceholderClient {
     }
   }
 
-  async getUser(id: number): Promise<User> {
+  async getUser(id: number, cacheOptions: CacheOptions = {}): Promise<User> {
     try {
-      const response = await this.client.get<User>(`/users/${id}`);
-      return response.data;
+      return await this.handleCachedRequest(
+        {
+          method: 'GET',
+          url: `/users/${id}`,
+          params: {}
+        },
+        async () => {
+          const response = await this.client.get<User>(`/users/${id}`);
+          return response.data;
+        },
+        cacheOptions
+      );
     } catch (error) {
       this.handleError(error as AxiosError, `user/${id}`);
     }
