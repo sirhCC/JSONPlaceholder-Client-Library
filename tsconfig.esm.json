@@ -1,11 +1,20 @@
 {
-  "extends": "./tsconfig.json",
   "compilerOptions": {
     "target": "ES2018",
     "module": "ES2015",
+    "lib": ["ES2018", "DOM"],
+    "strict": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
     "outDir": "./dist/esm",
     "declaration": false,
-    "declarationMap": false
+    "declarationMap": false,
+    "sourceMap": true
   },
   "include": [
     "src/**/*"
