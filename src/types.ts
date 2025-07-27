@@ -55,17 +55,45 @@ export interface CommentSearchOptions extends CommentFilters, SearchOptions {}
 export interface UserSearchOptions extends UserFilters, SearchOptions {}
 
 export interface PaginatedResponse<T> {
-    data: T[];
-    pagination: {
-        page: number;
-        limit: number;
-        total: number;
-        hasNext: boolean;
-        hasPrev: boolean;
-    };
+  data: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
 }
 
-// Custom Error Classes
+// Interceptor types
+export interface RequestConfig {
+  method: string;
+  url: string;
+  headers: Record<string, string>;
+  data?: any;
+  params?: Record<string, any>;
+}
+
+export interface ResponseData<T = any> {
+  data: T;
+  status: number;
+  statusText: string;
+  headers: Record<string, string>;
+  config: RequestConfig;
+}
+
+export type RequestInterceptor = (config: RequestConfig) => RequestConfig | Promise<RequestConfig>;
+export type ResponseInterceptor = (response: ResponseData) => ResponseData | Promise<ResponseData>;
+export type ResponseErrorInterceptor = (error: any) => any | Promise<any>;
+
+export interface InterceptorOptions {
+  retry?: {
+    attempts: number;
+    delay: number;
+    exponentialBackoff?: boolean;
+  };
+  timeout?: number;
+}// Custom Error Classes
 export class ApiClientError extends Error {
     public readonly status: number;
     public readonly response?: any;
