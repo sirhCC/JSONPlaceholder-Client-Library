@@ -264,13 +264,9 @@ export class JsonPlaceholderClient {
       return this.cacheManager.getWithSWR(key, requestFn, options);
     }
 
-    try {
-      // Use getOrFetch to handle concurrent requests properly
-      return await this.cacheManager.getOrFetch(key, requestFn, options);
-    } catch (cacheError) {
-      console.warn('Cache operation failed, falling back to direct request:', cacheError);
-      return await requestFn();
-    }
+    // Use getOrFetch to handle concurrent requests properly
+    // Don't catch API errors here, let them bubble up naturally
+    return await this.cacheManager.getOrFetch(key, requestFn, options);
   }
 
   // Utility methods for common interceptors

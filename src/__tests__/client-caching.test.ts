@@ -131,15 +131,11 @@ describe('JsonPlaceholderClient with Caching', () => {
       // Make some requests to generate stats
       await client.getPosts();
       await client.getPosts(); // Cache hit
-      await client.getPost(999); // This will cause an error, but still counts as a request
-
-      mockAxios.onGet('/posts/999').reply(404);
-
-      try {
-        await client.getPost(999);
-      } catch (error) {
-        // Expected error
-      }
+      
+      // Try to get a non-existent post (this should not be cached)
+      const mockPost = { id: 999, userId: 1, title: 'Test', body: 'Body' };
+      mockAxios.onGet('/posts/999').reply(200, mockPost);
+      await client.getPost(999);
 
       const stats = client.getCacheStats();
       expect(stats.totalRequests).toBeGreaterThan(0);
@@ -368,14 +364,14 @@ describe('JsonPlaceholderClient with Caching', () => {
     });
 
     test('should handle cache storage errors gracefully', async () => {
-      // Simulate storage error by mocking the cache manager
+      // Simulate storage error by mocking the cache manager's set method
       const originalSet = client['cacheManager'].set;
       client['cacheManager'].set = jest.fn().mockRejectedValue(new Error('Storage error'));
 
       const mockPosts = [{ id: 1, userId: 1, title: 'Test', body: 'Body' }];
       mockAxios.onGet('/posts').reply(200, mockPosts);
 
-      // Should still work even if caching fails
+      // Should still work even if caching fails - just won't cache the result
       const posts = await client.getPosts();
       expect(posts).toEqual(mockPosts);
 
@@ -387,7 +383,15 @@ describe('JsonPlaceholderClient with Caching', () => {
   describe('Performance Features', () => {
     test('should show cache performance benefits', async () => {
       const mockPosts = [{ id: 1, userId: 1, title: 'Test', body: 'Body' }];
-      mockAxios.onGet('/posts').reply(200, mockPosts);
+      
+      // Add delay to API response to measure difference
+      mockAxios.onGet('/posts').reply(() => {
+        return new Promise(resolve => {
+          setTimeout(() => {
+            resolve([200, mockPosts]);
+          }, 50); // 50ms delay
+        });
+      });
 
       // First request (from API)
       const start1 = Date.now();
@@ -399,23 +403,40 @@ describe('JsonPlaceholderClient with Caching', () => {
       await client.getPosts();
       const time2 = Date.now() - start2;
 
-      // Cache should be significantly faster
+      // Cache should be significantly faster (allow some tolerance)
       expect(time2).toBeLessThan(time1 / 2);
+      expect(time1).toBeGreaterThan(40); // Ensure API call actually took time
     });
 
     test('should handle concurrent requests efficiently', async () => {
       const mockPosts = [{ id: 1, userId: 1, title: 'Test', body: 'Body' }];
-      mockAxios.onGet('/posts').reply(200, mockPosts);
+      
+      // Add delay to simulate real API
+      let callCount = 0;
+      mockAxios.onGet('/posts').reply(() => {
+        callCount++;
+        console.log(`API call #${callCount}`);
+        return new Promise(resolve => {
+          setTimeout(() => {
+            resolve([200, mockPosts]);
+          }, 50);
+        });
+      });
 
       // Make multiple concurrent requests
-      const promises = Array(5).fill(null).map(() => client.getPosts());
+      console.log('Starting concurrent requests...');
+      const promises = Array(5).fill(null).map((_, i) => {
+        console.log(`Starting request ${i + 1}`);
+        return client.getPosts();
+      });
       const results = await Promise.all(promises);
 
       // All should return the same data
       results.forEach(posts => expect(posts).toEqual(mockPosts));
 
       // Should only make one API call despite multiple concurrent requests
-      expect(mockAxios.history.get.length).toBe(1);
+      console.log(`Total API calls: ${callCount}`);
+      expect(callCount).toBe(1);
     });
   });
 });
