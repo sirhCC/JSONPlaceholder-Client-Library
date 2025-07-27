@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSONPlaceholder React Hooks Test</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+        .error {
+            color: #d32f2f;
+            background: #ffebee;
+            padding: 12px;
+            border-radius: 4px;
+            border-left: 4px solid #d32f2f;
+        }
+        .post-title {
+            color: #1976d2;
+            margin: 0 0 8px 0;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+        .post-body {
+            color: #555;
+            line-height: 1.5;
+            margin: 0;
+        }
+        .stats {
+            background: #e3f2fd;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        button {
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0 8px 8px 0;
+        }
+        button:hover {
+            background: #1565c0;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // Mock the JSONPlaceholder client and React hooks
+        const JsonPlaceholderClient = class {
+            constructor() {
+                this.baseURL = 'https://jsonplaceholder.typicode.com';
+            }
+
+            async getPosts() {
+                const response = await fetch(`${this.baseURL}/posts`);
+                return response.json();
+            }
+
+            async getPost(id) {
+                const response = await fetch(`${this.baseURL}/posts/${id}`);
+                return response.json();
+            }
+
+            async createPost(data) {
+                const response = await fetch(`${this.baseURL}/posts`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data),
+                });
+                return response.json();
+            }
+        };
+
+        // Mock React Context
+        const JsonPlaceholderContext = React.createContext(null);
+
+        const JsonPlaceholderProvider = ({ client, children }) => {
+            return React.createElement(JsonPlaceholderContext.Provider, {
+                value: client
+            }, children);
+        };
+
+        const useJsonPlaceholderClient = () => {
+            const client = React.useContext(JsonPlaceholderContext);
+            if (!client) {
+                throw new Error('useJsonPlaceholderClient must be used within a JsonPlaceholderProvider');
+            }
+            return client;
+        };
+
+        // Mock useQuery hook (simplified version of our implementation)
+        const useQuery = (queryKey, queryFn, options = {}) => {
+            const [data, setData] = React.useState(options.initialData);
+            const [error, setError] = React.useState(null);
+            const [isLoading, setIsLoading] = React.useState(true);
+
+            const refetch = React.useCallback(async () => {
+                try {
+                    setIsLoading(true);
+                    setError(null);
+                    const result = await queryFn();
+                    setData(result);
+                    options.onSuccess?.(result);
+                } catch (err) {
+                    setError(err);
+                    options.onError?.(err);
+                } finally {
+                    setIsLoading(false);
+                }
+            }, [queryFn, options.onSuccess, options.onError]);
+
+            React.useEffect(() => {
+                if (options.enabled !== false) {
+                    refetch();
+                }
+            }, [refetch, options.enabled]);
+
+            return {
+                data,
+                error,
+                isLoading,
+                isError: !!error,
+                isSuccess: !error && !isLoading,
+                refetch
+            };
+        };
+
+        // Mock useMutation hook
+        const useMutation = (mutationFn, options = {}) => {
+            const [isLoading, setIsLoading] = React.useState(false);
+            const [error, setError] = React.useState(null);
+
+            const mutate = React.useCallback(async (variables) => {
+                try {
+                    setIsLoading(true);
+                    setError(null);
+                    const result = await mutationFn(variables);
+                    options.onSuccess?.(result);
+                    return result;
+                } catch (err) {
+                    setError(err);
+                    options.onError?.(err);
+                    throw err;
+                } finally {
+                    setIsLoading(false);
+                }
+            }, [mutationFn, options.onSuccess, options.onError]);
+
+            return {
+                mutate,
+                isLoading,
+                error,
+                isError: !!error
+            };
+        };
+
+        // Mock usePosts hook
+        const usePosts = (options = {}) => {
+            const client = useJsonPlaceholderClient();
+            const queryFn = React.useCallback(() => client.getPosts(), [client]);
+            
+            return useQuery(['posts'], queryFn, {
+                staleTime: 5 * 60 * 1000,
+                ...options
+            });
+        };
+
+        // Mock useCreatePost hook
+        const useCreatePost = (options = {}) => {
+            const client = useJsonPlaceholderClient();
+            const mutationFn = React.useCallback((data) => client.createPost(data), [client]);
+            
+            return useMutation(mutationFn, options);
+        };
+
+        // Test Component
+        const TestApp = () => {
+            const { data: posts, isLoading, error, refetch } = usePosts();
+            const createPost = useCreatePost({
+                onSuccess: () => {
+                    alert('Post created successfully!');
+                    refetch();
+                }
+            });
+
+            const handleCreatePost = () => {
+                createPost.mutate({
+                    title: 'Test Post from React Hooks',
+                    body: 'This post was created using our React hooks!',
+                    userId: 1
+                });
+            };
+
+            if (isLoading) {
+                return React.createElement('div', { className: 'loading' }, 
+                    '🔄 Loading posts...'
+                );
+            }
+
+            if (error) {
+                return React.createElement('div', { className: 'error' }, 
+                    `❌ Error: ${error.message}`
+                );
+            }
+
+            return React.createElement('div', null, [
+                React.createElement('h1', { key: 'title' }, 
+                    '🚀 JSONPlaceholder React Hooks Test'
+                ),
+                
+                React.createElement('div', { key: 'stats', className: 'stats' }, 
+                    `✅ Successfully loaded ${posts?.length || 0} posts!`
+                ),
+
+                React.createElement('div', { key: 'actions' }, [
+                    React.createElement('button', {
+                        key: 'refetch',
+                        onClick: refetch
+                    }, '🔄 Refetch Posts'),
+                    
+                    React.createElement('button', {
+                        key: 'create',
+                        onClick: handleCreatePost,
+                        disabled: createPost.isLoading
+                    }, createPost.isLoading ? '⏳ Creating...' : '➕ Create Test Post')
+                ]),
+
+                React.createElement('div', { key: 'posts' }, 
+                    posts?.slice(0, 5).map(post => 
+                        React.createElement('div', { key: post.id, className: 'card' }, [
+                            React.createElement('h3', { 
+                                key: 'title', 
+                                className: 'post-title' 
+                            }, `${post.id}. ${post.title}`),
+                            React.createElement('p', { 
+                                key: 'body', 
+                                className: 'post-body' 
+                            }, post.body)
+                        ])
+                    )
+                ),
+
+                React.createElement('div', { key: 'footer', className: 'stats' }, 
+                    '✨ React Hooks working perfectly with JSONPlaceholder API!'
+                )
+            ]);
+        };
+
+        // Initialize the app
+        const client = new JsonPlaceholderClient();
+        
+        const App = () => {
+            return React.createElement(JsonPlaceholderProvider, { client }, 
+                React.createElement(TestApp)
+            );
+        };
+
+        ReactDOM.render(React.createElement(App), document.getElementById('root'));
+    </script>
+</body>
+</html>
