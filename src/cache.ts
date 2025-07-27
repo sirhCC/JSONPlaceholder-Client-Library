@@ -289,7 +289,7 @@ export class SessionStorageCacheStorage extends LocalStorageCacheStorage {
     return (await this.keys()).length;
   }
 
-  private async evictOldest(): Promise<void> {
+  protected async evictOldest(): Promise<void> {
     const keys = await this.keys();
     let oldestKey = '';
     let oldestTime = Date.now();
