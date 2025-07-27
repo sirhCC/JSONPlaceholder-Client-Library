@@ -1,5 +1,18 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
-import { Post, Comment, User, PostNotFoundError, ValidationError, ServerError, RateLimitError, ApiClientError } from './types';
+import { 
+  Post, 
+  Comment, 
+  User, 
+  PostNotFoundError, 
+  ValidationError, 
+  ServerError, 
+  RateLimitError, 
+  ApiClientError,
+  PostSearchOptions,
+  CommentSearchOptions,
+  UserSearchOptions,
+  PaginatedResponse
+} from './types';
 
 const defaultApiUrl = 'https://jsonplaceholder.typicode.com';
 
@@ -10,6 +23,35 @@ export class JsonPlaceholderClient {
     this.client = axios.create({
       baseURL,
     });
+  }
+
+  private buildQueryString(params: Record<string, any>): string {
+    const queryParams = new URLSearchParams();
+    
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        queryParams.append(key, value.toString());
+      }
+    });
+    
+    return queryParams.toString();
+  }
+
+  private parsePaginationHeaders(headers: any, data: any[], options: any): PaginatedResponse<any> {
+    const totalCount = parseInt(headers['x-total-count'] || data.length.toString());
+    const page = options._page || 1;
+    const limit = options._limit || data.length;
+    
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        hasNext: page * limit < totalCount,
+        hasPrev: page > 1
+      }
+    };
   }
 
   private handleError(error: AxiosError, context?: string): never {
@@ -78,6 +120,39 @@ export class JsonPlaceholderClient {
     }
   }
 
+  async getPostsWithPagination(options: PostSearchOptions = {}): Promise<PaginatedResponse<Post>> {
+    try {
+      const queryString = this.buildQueryString(options);
+      const url = queryString ? `/posts?${queryString}` : '/posts';
+      const response = await this.client.get<Post[]>(url);
+      
+      return this.parsePaginationHeaders(response.headers, response.data, options);
+    } catch (error) {
+      this.handleError(error as AxiosError, 'posts-paginated');
+    }
+  }
+
+  async searchPosts(options: PostSearchOptions): Promise<Post[]> {
+    try {
+      const queryString = this.buildQueryString(options);
+      const response = await this.client.get<Post[]>(`/posts?${queryString}`);
+      return response.data;
+    } catch (error) {
+      this.handleError(error as AxiosError, 'posts-search');
+    }
+  }
+
+  async getPostsByUser(userId: number, options: PostSearchOptions = {}): Promise<Post[]> {
+    try {
+      const searchOptions = { ...options, userId };
+      const queryString = this.buildQueryString(searchOptions);
+      const response = await this.client.get<Post[]>(`/posts?${queryString}`);
+      return response.data;
+    } catch (error) {
+      this.handleError(error as AxiosError, `posts-by-user-${userId}`);
+    }
+  }
+
   async getPost(id: number): Promise<Post> {
     try {
       const response = await this.client.get<Post>(`/posts/${id}`);
@@ -96,12 +171,76 @@ export class JsonPlaceholderClient {
     }
   }
 
+  async getCommentsWithPagination(options: CommentSearchOptions = {}): Promise<PaginatedResponse<Comment>> {
+    try {
+      const queryString = this.buildQueryString(options);
+      const url = queryString ? `/comments?${queryString}` : '/comments';
+      const response = await this.client.get<Comment[]>(url);
+      
+      return this.parsePaginationHeaders(response.headers, response.data, options);
+    } catch (error) {
+      this.handleError(error as AxiosError, 'comments-paginated');
+    }
+  }
+
+  async searchComments(options: CommentSearchOptions): Promise<Comment[]> {
+    try {
+      const queryString = this.buildQueryString(options);
+      const response = await this.client.get<Comment[]>(`/comments?${queryString}`);
+      return response.data;
+    } catch (error) {
+      this.handleError(error as AxiosError, 'comments-search');
+    }
+  }
+
+  async getCommentsByPost(postId: number, options: CommentSearchOptions = {}): Promise<Comment[]> {
+    try {
+      const searchOptions = { ...options, postId };
+      const queryString = this.buildQueryString(searchOptions);
+      const response = await this.client.get<Comment[]>(`/comments?${queryString}`);
+      return response.data;
+    } catch (error) {
+      this.handleError(error as AxiosError, `comments-by-post-${postId}`);
+    }
+  }
+
   async getUser(id: number): Promise<User> {
     try {
       const response = await this.client.get<User>(`/users/${id}`);
       return response.data;
     } catch (error) {
       this.handleError(error as AxiosError, `user/${id}`);
+    }
+  }
+
+  async getUsers(): Promise<User[]> {
+    try {
+      const response = await this.client.get<User[]>('/users');
+      return response.data;
+    } catch (error) {
+      this.handleError(error as AxiosError, 'users');
+    }
+  }
+
+  async getUsersWithPagination(options: UserSearchOptions = {}): Promise<PaginatedResponse<User>> {
+    try {
+      const queryString = this.buildQueryString(options);
+      const url = queryString ? `/users?${queryString}` : '/users';
+      const response = await this.client.get<User[]>(url);
+      
+      return this.parsePaginationHeaders(response.headers, response.data, options);
+    } catch (error) {
+      this.handleError(error as AxiosError, 'users-paginated');
+    }
+  }
+
+  async searchUsers(options: UserSearchOptions): Promise<User[]> {
+    try {
+      const queryString = this.buildQueryString(options);
+      const response = await this.client.get<User[]>(`/users?${queryString}`);
+      return response.data;
+    } catch (error) {
+      this.handleError(error as AxiosError, 'users-search');
     }
   }
 

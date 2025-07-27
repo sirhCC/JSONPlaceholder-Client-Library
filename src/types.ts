@@ -10,6 +10,61 @@ export interface ApiError {
     message: string;
 }
 
+// Filtering and Pagination Types
+export interface PaginationOptions {
+    _page?: number;
+    _limit?: number;
+    _start?: number;
+    _end?: number;
+}
+
+export interface PostFilters {
+    userId?: number;
+    title?: string;
+    body?: string;
+    id?: number;
+}
+
+export interface CommentFilters {
+    postId?: number;
+    name?: string;
+    email?: string;
+    body?: string;
+    id?: number;
+}
+
+export interface UserFilters {
+    name?: string;
+    username?: string;
+    email?: string;
+    website?: string;
+    id?: number;
+}
+
+export interface SortOptions {
+    _sort?: string;
+    _order?: 'asc' | 'desc';
+}
+
+export interface SearchOptions extends PaginationOptions, SortOptions {
+    q?: string; // Full-text search
+}
+
+export interface PostSearchOptions extends PostFilters, SearchOptions {}
+export interface CommentSearchOptions extends CommentFilters, SearchOptions {}
+export interface UserSearchOptions extends UserFilters, SearchOptions {}
+
+export interface PaginatedResponse<T> {
+    data: T[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        hasNext: boolean;
+        hasPrev: boolean;
+    };
+}
+
 // Custom Error Classes
 export class ApiClientError extends Error {
     public readonly status: number;
