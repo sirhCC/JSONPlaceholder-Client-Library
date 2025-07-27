@@ -93,7 +93,79 @@ export interface InterceptorOptions {
     exponentialBackoff?: boolean;
   };
   timeout?: number;
-}// Custom Error Classes
+}
+
+// Cache Configuration Types
+export interface CacheConfig {
+  enabled: boolean;
+  defaultTTL: number; // Time to live in milliseconds
+  maxSize: number; // Maximum number of entries
+  storage: 'memory' | 'localStorage' | 'sessionStorage';
+  keyPrefix: string;
+  backgroundRefresh: boolean;
+  refreshThreshold: number; // Percentage of TTL when background refresh triggers (0-1)
+}
+
+export interface CacheEntry<T = any> {
+  data: T;
+  timestamp: number;
+  ttl: number;
+  accessCount: number;
+  lastAccess: number;
+  key: string;
+  size: number; // Approximate size in bytes
+}
+
+export interface CacheStats {
+  hits: number;
+  misses: number;
+  evictions: number;
+  backgroundRefreshes: number;
+  totalRequests: number;
+  hitRate: number;
+  currentSize: number;
+  maxSize: number;
+  entryCount: number;
+  averageResponseTime: number;
+}
+
+export interface CacheOptions {
+  ttl?: number; // Override default TTL for this request
+  forceRefresh?: boolean; // Skip cache and force fresh data
+  backgroundRefresh?: boolean; // Enable background refresh for this request
+  staleWhileRevalidate?: boolean; // Return stale data while fetching fresh data
+}
+
+export interface CacheKey {
+  method: string;
+  url: string;
+  params?: Record<string, any>;
+  data?: any;
+}
+
+// Cache Storage Interface
+export interface ICacheStorage {
+  get<T>(key: string): Promise<CacheEntry<T> | null>;
+  set<T>(key: string, entry: CacheEntry<T>): Promise<void>;
+  delete(key: string): Promise<void>;
+  clear(): Promise<void>;
+  keys(): Promise<string[]>;
+  size(): Promise<number>;
+}
+
+// Cache Event Types
+export type CacheEventType = 'hit' | 'miss' | 'set' | 'delete' | 'evict' | 'refresh' | 'clear';
+
+export interface CacheEvent {
+  type: CacheEventType;
+  key: string;
+  timestamp: number;
+  metadata?: Record<string, any>;
+}
+
+export type CacheEventListener = (event: CacheEvent) => void;
+
+// Custom Error Classes
 export class ApiClientError extends Error {
     public readonly status: number;
     public readonly response?: any;
