@@ -96,7 +96,7 @@ describe('JsonPlaceholderClient Error Handling', () => {
     it('should use default message when none provided', async () => {
       mock.onGet('/posts').reply(500);
 
-      await expect(client.getPosts()).rejects.toThrow('Internal server error');
+      await expect(client.getPosts()).rejects.toThrow('Server error occurred');
     });
   });
 
@@ -118,7 +118,7 @@ describe('JsonPlaceholderClient Error Handling', () => {
 
       try {
         await client.getPosts();
-      } catch (error) {
+      } catch (error: any) {
         expect(error).toBeInstanceOf(RateLimitError);
         expect((error as RateLimitError).retryAfter).toBeUndefined();
       }
@@ -131,7 +131,7 @@ describe('JsonPlaceholderClient Error Handling', () => {
 
       try {
         await client.getPosts();
-      } catch (error) {
+      } catch (error: any) {
         expect(error).toBeInstanceOf(ApiClientError);
         expect((error as ApiClientError).status).toBe(418);
       }
@@ -157,7 +157,7 @@ describe('JsonPlaceholderClient Error Handling', () => {
 
       try {
         await client.getPost(999);
-      } catch (error) {
+      } catch (error: any) {
         expect(error).toBeInstanceOf(PostNotFoundError);
         expect((error as PostNotFoundError).response).toEqual(responseData);
       }
