@@ -11,7 +11,8 @@ import {
   PostSearchOptions,
   CommentSearchOptions,
   UserSearchOptions,
-  PaginatedResponse
+  PaginatedResponse,
+  PaginationOptions
 } from './types';
 
 const defaultApiUrl = 'https://jsonplaceholder.typicode.com';
@@ -37,18 +38,18 @@ export class JsonPlaceholderClient {
     return queryParams.toString();
   }
 
-  private parsePaginationHeaders(headers: any, data: any[], options: any): PaginatedResponse<any> {
-    const totalCount = parseInt(headers['x-total-count'] || data.length.toString());
+  private parsePaginationHeaders<T>(headers: any, data: T[], options: PaginationOptions): PaginatedResponse<T> {
+    const total = parseInt(headers['x-total-count'] || '0', 10);
     const page = options._page || 1;
-    const limit = options._limit || data.length;
+    const limit = options._limit || 10;
     
     return {
       data,
       pagination: {
         page,
         limit,
-        total: totalCount,
-        hasNext: page * limit < totalCount,
+        total,
+        hasNext: (page * limit) < total,
         hasPrev: page > 1
       }
     };
