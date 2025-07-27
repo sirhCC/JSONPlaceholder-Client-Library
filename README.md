@@ -1,6 +1,73 @@
 # JSONPlaceholder API Client Library
 
-A robust TypeScript client library for interacting with the [JSONPlaceholder API](https://jsonplaceholder.typicode.com/). Features full CRUD operations, comprehensive error handling, and type safety.
+A TypeScript library that p  } catch (error: any) {
+    console.error('Error:', error.message);
+  }
+}
+
+main();
+```
+
+### Advanced Filtering & Pagination
+
+The library now supports advanced filtering, searching, and pagination:
+
+```typescript
+// Get posts with pagination
+const paginatedPosts = await client.getPostsWithPagination({
+  _page: 1,
+  _limit: 10
+});
+
+console.log(`Page: ${paginatedPosts.pagination.page}`);
+console.log(`Total: ${paginatedPosts.pagination.total}`);
+console.log(`Has next: ${paginatedPosts.pagination.hasNext}`);
+
+// Search posts by user ID
+const userPosts = await client.searchPosts({ userId: 1 });
+
+// Search with sorting
+const sortedPosts = await client.searchPosts({
+  _sort: 'title',
+  _order: 'desc'
+});
+
+// Full-text search
+const searchResults = await client.searchPosts({
+  q: 'important topic'
+});
+
+// Complex search with multiple filters
+const complexSearch = await client.searchPosts({
+  userId: 1,
+  _sort: 'id',
+  _order: 'asc',
+  _page: 1,
+  _limit: 5
+});
+
+// Search comments by post ID
+const postComments = await client.searchComments({ postId: 1 });
+
+// Search users by name
+const usersByName = await client.searchUsers({ name: 'John Doe' });
+
+// Get users with pagination
+const paginatedUsers = await client.getUsersWithPagination({
+  _page: 1,
+  _limit: 3
+});
+```s a simple, type-safe interface for interacting with the JSONPlaceholder API. Features comprehensive CRUD operations, advanced filtering & pagination, robust error handling, and full TypeScript support.
+
+## Features
+
+- ✅ **Full CRUD Operations**: Create, read, update, and delete posts
+- ✅ **Advanced Filtering & Pagination**: Search and paginate through resources
+- ✅ **Type Safety**: Written in TypeScript with comprehensive type definitions
+- ✅ **Error Handling**: Custom error classes for different API scenarios
+- ✅ **Easy to Use**: Simple, intuitive API
+- ✅ **Well Tested**: Comprehensive test suite with 39+ test cases
+- ✅ **Zero Dependencies**: Only requires axios for HTTP requests
 
 ## Installation
 
@@ -169,6 +236,34 @@ interface User {
     name: string;
     catchPhrase: string;
     bs: string;
+  };
+}
+
+// Filtering and search options
+interface PostSearchOptions {
+  userId?: number;
+  title?: string;
+  body?: string;
+  q?: string; // Full-text search
+  _sort?: string;
+  _order?: 'asc' | 'desc';
+  _page?: number;
+  _limit?: number;
+}
+
+interface PaginationOptions {
+  _page?: number;
+  _limit?: number;
+}
+
+interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    hasNext: boolean;
+    hasPrev: boolean;
   };
 }
 ```
