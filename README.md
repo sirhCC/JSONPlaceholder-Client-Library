@@ -115,16 +115,19 @@ const client = new JsonPlaceholderClient('https://jsonplaceholder.typicode.com',
 ### Storage Options
 
 #### Memory Storage (Default)
+
 - Fast in-memory caching
 - Cleared when page reloads
 - Best for short-term caching
 
 #### localStorage Storage
+
 - Persistent across browser sessions
 - Survives page reloads and browser restarts
 - Limited by browser storage quotas
 
 #### sessionStorage Storage
+
 - Persistent within browser session
 - Cleared when tab is closed
 - Good for session-based caching
@@ -244,6 +247,7 @@ const posts = await client.getPosts(); // Returns cached data + triggers backgro
 ### Performance Optimizations
 
 #### Concurrent Request Deduplication
+
 Multiple simultaneous requests for the same resource are automatically deduplicated:
 
 ```typescript
@@ -253,6 +257,7 @@ const results = await Promise.all(promises); // All return the same data
 ```
 
 #### Intelligent Cache Keys
+
 Cache keys are automatically generated based on request parameters:
 
 ```typescript
@@ -263,6 +268,7 @@ await client.getPostsWithPagination({ _page: 2 }); // Key: "GET|/posts|_page=2"
 ```
 
 #### Cache Statistics and Monitoring
+
 ```typescript
 const stats = client.getCacheStats();
 
@@ -279,9 +285,10 @@ console.log({
 });
 ```
 
-### Advanced Usage Examples
+### Production Examples
 
 #### Production Configuration
+
 ```typescript
 const client = new JsonPlaceholderClient('https://api.example.com', {
   enabled: true,
@@ -309,6 +316,7 @@ client.addCacheEventListener((event) => {
 ```
 
 #### Cache Warming Strategy
+
 ```typescript
 async function warmCache() {
   // Prefetch critical data at application startup
@@ -327,6 +335,7 @@ await warmCache();
 ```
 
 #### Conditional Caching
+
 ```typescript
 async function getPostsWithSmartCaching(userId?: number) {
   const options = {
