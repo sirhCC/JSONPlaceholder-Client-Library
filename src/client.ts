@@ -18,8 +18,13 @@ import {
   ResponseErrorInterceptor,
   RequestConfig,
   ResponseData,
-  InterceptorOptions
+  InterceptorOptions,
+  CacheConfig,
+  CacheOptions,
+  CacheStats,
+  CacheKey
 } from './types';
+import { CacheManager } from './cache';
 
 const defaultApiUrl = 'https://jsonplaceholder.typicode.com';
 
@@ -28,8 +33,9 @@ export class JsonPlaceholderClient {
   private requestInterceptors: RequestInterceptor[] = [];
   private responseInterceptors: ResponseInterceptor[] = [];
   private responseErrorInterceptors: ResponseErrorInterceptor[] = [];
+  private cacheManager: CacheManager;
 
-  constructor(baseURL: string = defaultApiUrl) {
+  constructor(baseURL: string = defaultApiUrl, cacheConfig?: Partial<CacheConfig>) {
     this.client = axios.create({
       baseURL,
       timeout: 10000,
@@ -38,6 +44,7 @@ export class JsonPlaceholderClient {
       },
     });
 
+    this.cacheManager = new CacheManager(cacheConfig);
     this.setupDefaultInterceptors();
   }
 
