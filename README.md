@@ -2,6 +2,13 @@
 
 A TypeScript library that provides a simple, type-safe interface for interacting with the JSONPlaceholder API. Features comprehensive CRUD operations, advanced filtering & pagination, robust error handling, intelligent caching & performance optimization, and full TypeScript support.
 
+## 📦 Packages
+
+This is a monorepo containing multiple packages:
+
+- **[`jsonplaceholder-client-lib`](./README.md)** - Core TypeScript client library
+- **[`@jsonplaceholder-client-lib/react`](./packages/react/README.md)** - React hooks with Suspense support
+
 ## Features
 
 - ✅ **Full CRUD Operations**: Create, read, update, and delete posts
@@ -13,14 +20,25 @@ A TypeScript library that provides a simple, type-safe interface for interacting
 - ✅ **Easy to Use**: Simple, intuitive API
 - ✅ **Well Tested**: Comprehensive test suite with 91 test cases
 - ✅ **Zero Dependencies**: Only requires axios for HTTP requests
+- ⚛️ **React Hooks**: Advanced React hooks with caching and optimistic updates
 
 ## Installation
+
+### Core Library
 
 ```bash
 npm install jsonplaceholder-client-lib
 ```
 
+### React Hooks
+
+```bash
+npm install @jsonplaceholder-client-lib/react jsonplaceholder-client-lib
+```
+
 ## Quick Start
+
+### TypeScript/JavaScript
 
 ```typescript
 import { JsonPlaceholderClient } from 'jsonplaceholder-client-lib';
@@ -39,6 +57,55 @@ const newPost = await client.createPost({
   body: 'This is the content of my post',
   userId: 1
 });
+```
+
+### React Hooks Example
+
+```tsx
+import React from 'react';
+import { JsonPlaceholderClient } from 'jsonplaceholder-client-lib';
+import { JsonPlaceholderProvider, usePosts, useCreatePost } from '@jsonplaceholder-client-lib/react';
+
+const client = new JsonPlaceholderClient();
+
+function App() {
+  return (
+    <JsonPlaceholderProvider client={client}>
+      <PostsList />
+    </JsonPlaceholderProvider>
+  );
+}
+
+function PostsList() {
+  const { data: posts, isLoading, error } = usePosts();
+  const createPost = useCreatePost();
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+
+  return (
+    <div>
+      <h1>Posts ({posts?.length})</h1>
+      {posts?.map(post => (
+        <div key={post.id}>
+          <h3>{post.title}</h3>
+          <p>{post.body}</p>
+        </div>
+      ))}
+      
+      <button
+        onClick={() => createPost.mutate({
+          title: 'New Post',
+          body: 'Post content',
+          userId: 1
+        })}
+        disabled={createPost.isLoading}
+      >
+        {createPost.isLoading ? 'Creating...' : 'Create Post'}
+      </button>
+    </div>
+  );
+}
 ```
 
 ## Advanced Filtering & Pagination
