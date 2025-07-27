@@ -141,6 +141,145 @@ export class JsonPlaceholderClient {
     this.responseErrorInterceptors = [];
   }
 
+  // Cache Management Methods
+  
+  /**
+   * Enable or disable caching
+   */
+  enableCache(enabled: boolean = true): void {
+    this.cacheManager.updateConfig({ enabled });
+  }
+
+  /**
+   * Configure cache settings
+   */
+  configureCaching(config: Partial<CacheConfig>): void {
+    this.cacheManager.updateConfig(config);
+  }
+
+  /**
+   * Get cache configuration
+   */
+  getCacheConfig(): CacheConfig {
+    return this.cacheManager.getConfig();
+  }
+
+  /**
+   * Get cache statistics
+   */
+  getCacheStats(): CacheStats {
+    return this.cacheManager.getStats();
+  }
+
+  /**
+   * Clear all cached data
+   */
+  clearCache(): Promise<void> {
+    return this.cacheManager.clear();
+  }
+
+  /**
+   * Delete specific cache entry
+   */
+  deleteCacheEntry(key: string): Promise<void> {
+    return this.cacheManager.delete(key);
+  }
+
+  /**
+   * Prefetch data and store in cache
+   */
+  async prefetchPosts(options: CacheOptions = {}): Promise<void> {
+    const key = this.cacheManager.generateKey({
+      method: 'GET',
+      url: '/posts',
+      params: {}
+    });
+
+    await this.cacheManager.prefetch(
+      key,
+      () => this.client.get('/posts').then(response => response.data),
+      options
+    );
+  }
+
+  /**
+   * Prefetch user data
+   */
+  async prefetchUser(userId: number, options: CacheOptions = {}): Promise<void> {
+    const key = this.cacheManager.generateKey({
+      method: 'GET',
+      url: `/users/${userId}`,
+      params: {}
+    });
+
+    await this.cacheManager.prefetch(
+      key,
+      () => this.client.get(`/users/${userId}`).then(response => response.data),
+      options
+    );
+  }
+
+  /**
+   * Prefetch comments for a post
+   */
+  async prefetchComments(postId: number, options: CacheOptions = {}): Promise<void> {
+    const key = this.cacheManager.generateKey({
+      method: 'GET',
+      url: `/posts/${postId}/comments`,
+      params: {}
+    });
+
+    await this.cacheManager.prefetch(
+      key,
+      () => this.client.get(`/posts/${postId}/comments`).then(response => response.data),
+      options
+    );
+  }
+
+  /**
+   * Add cache event listener
+   */
+  addCacheEventListener(listener: (event: any) => void): void {
+    this.cacheManager.addEventListener(listener);
+  }
+
+  /**
+   * Remove cache event listener
+   */
+  removeCacheEventListener(listener: (event: any) => void): void {
+    this.cacheManager.removeEventListener(listener);
+  }
+
+  /**
+   * Internal method to handle cached requests
+   */
+  private async handleCachedRequest<T>(
+    cacheKey: CacheKey,
+    requestFn: () => Promise<T>,
+    options: CacheOptions = {}
+  ): Promise<T> {
+    const key = this.cacheManager.generateKey(cacheKey);
+
+    if (options.forceRefresh) {
+      const data = await requestFn();
+      await this.cacheManager.set(key, data, options);
+      return data;
+    }
+
+    if (options.staleWhileRevalidate) {
+      return this.cacheManager.getWithSWR(key, requestFn, options);
+    }
+
+    const cachedData = await this.cacheManager.get<T>(key);
+    if (cachedData) {
+      return cachedData;
+    }
+
+    const freshData = await requestFn();
+    await this.cacheManager.set(key, freshData, options);
+    return freshData;
+  }
+
   // Utility methods for common interceptors
   addAuthInterceptor(token: string, type: 'Bearer' | 'API-Key' = 'Bearer'): number {
     return this.addRequestInterceptor((config) => {
@@ -289,10 +428,20 @@ export class JsonPlaceholderClient {
     return undefined;
   }
 
-  async getPosts(): Promise<Post[]> {
+  async getPosts(cacheOptions: CacheOptions = {}): Promise<Post[]> {
     try {
-      const response = await this.client.get<Post[]>('/posts');
-      return response.data;
+      return await this.handleCachedRequest(
+        {
+          method: 'GET',
+          url: '/posts',
+          params: {}
+        },
+        async () => {
+          const response = await this.client.get<Post[]>('/posts');
+          return response.data;
+        },
+        cacheOptions
+      );
     } catch (error) {
       this.handleError(error as AxiosError, 'posts');
     }
@@ -331,19 +480,39 @@ export class JsonPlaceholderClient {
     }
   }
 
-  async getPost(id: number): Promise<Post> {
+  async getPost(id: number, cacheOptions: CacheOptions = {}): Promise<Post> {
     try {
-      const response = await this.client.get<Post>(`/posts/${id}`);
-      return response.data;
+      return await this.handleCachedRequest(
+        {
+          method: 'GET',
+          url: `/posts/${id}`,
+          params: {}
+        },
+        async () => {
+          const response = await this.client.get<Post>(`/posts/${id}`);
+          return response.data;
+        },
+        cacheOptions
+      );
     } catch (error) {
       this.handleError(error as AxiosError, `post/${id}`);
     }
   }
 
-  async getComments(postId: number): Promise<Comment[]> {
+  async getComments(postId: number, cacheOptions: CacheOptions = {}): Promise<Comment[]> {
     try {
-      const response = await this.client.get<Comment[]>(`/posts/${postId}/comments`);
-      return response.data;
+      return await this.handleCachedRequest(
+        {
+          method: 'GET',
+          url: `/posts/${postId}/comments`,
+          params: {}
+        },
+        async () => {
+          const response = await this.client.get<Comment[]>(`/posts/${postId}/comments`);
+          return response.data;
+        },
+        cacheOptions
+      );
     } catch (error) {
       this.handleError(error as AxiosError, `post/${postId}/comments`);
     }
@@ -391,10 +560,20 @@ export class JsonPlaceholderClient {
     }
   }
 
-  async getUsers(): Promise<User[]> {
+  async getUsers(cacheOptions: CacheOptions = {}): Promise<User[]> {
     try {
-      const response = await this.client.get<User[]>('/users');
-      return response.data;
+      return await this.handleCachedRequest(
+        {
+          method: 'GET',
+          url: '/users',
+          params: {}
+        },
+        async () => {
+          const response = await this.client.get<User[]>('/users');
+          return response.data;
+        },
+        cacheOptions
+      );
     } catch (error) {
       this.handleError(error as AxiosError, 'users');
     }
