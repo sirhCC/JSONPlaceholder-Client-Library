@@ -421,24 +421,34 @@ export class CacheManager {
   async set<T>(key: string, data: T, options: CacheOptions = {}): Promise<void> {
     if (!this.config.enabled) return;
 
-    const ttl = options.ttl || this.config.defaultTTL;
-    const size = this.calculateSize(data);
-    
-    const entry: CacheEntry<T> = {
-      data,
-      timestamp: Date.now(),
-      ttl,
-      accessCount: 1,
-      lastAccess: Date.now(),
-      key,
-      size
-    };
+    try {
+      const ttl = options.ttl || this.config.defaultTTL;
+      const size = this.calculateSize(data);
+      
+      const entry: CacheEntry<T> = {
+        data,
+        timestamp: Date.now(),
+        ttl,
+        accessCount: 1,
+        lastAccess: Date.now(),
+        key,
+        size
+      };
 
-    await this.storage.set(key, entry);
-    this.emitEvent('set', key, { size, ttl });
-    
-    // Update stats
-    await this.updateStats();
+      await this.storage.set(key, entry);
+      this.emitEvent('set', key, { size, ttl });
+      
+      // Update stats
+      await this.updateStats();
+    } catch (error) {
+      // Silently handle storage errors - cache failure shouldn't break the application
+      console.warn('Cache storage error:', error);
+      // Emit a set event with error metadata to indicate cache set failure
+      this.emitEvent('set', key, { 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        success: false 
+      });
+    }
   }
 
   /**
@@ -653,7 +663,7 @@ export class CacheManager {
     fetchFn: () => Promise<T>,
     options: CacheOptions = {}
   ): Promise<T> {
-    // Check if there's already a pending request for this key
+    // First check - if there's already a pending request, return it
     if (this.pendingRequests.has(key)) {
       return this.pendingRequests.get(key) as Promise<T>;
     }
@@ -663,19 +673,31 @@ export class CacheManager {
       return cachedData;
     }
 
-    // Create and store the pending request
-    const requestPromise = (async () => {
-      try {
-        const freshData = await fetchFn();
-        await this.set(key, freshData, options);
-        return freshData;
-      } finally {
-        // Remove from pending requests when done
-        this.pendingRequests.delete(key);
-      }
-    })();
+    // Second check after async cache lookup - important for race conditions
+    if (this.pendingRequests.has(key)) {
+      return this.pendingRequests.get(key) as Promise<T>;
+    }
 
-    this.pendingRequests.set(key, requestPromise);
-    return requestPromise;
+    // Create the request promise and immediately add it to the map
+    // This is the critical section that must be atomic
+    const requestPromise = fetchFn().then(async (freshData) => {
+      try {
+        await this.set(key, freshData, options);
+      } catch (error) {
+        // Cache set failure should not prevent returning the fresh data
+        console.warn('Cache set failed:', error);
+      }
+      return freshData;
+    }).finally(() => {
+      this.pendingRequests.delete(key);
+    });
+
+    // Only set if not already set (this prevents race conditions)
+    if (!this.pendingRequests.has(key)) {
+      this.pendingRequests.set(key, requestPromise);
+      return requestPromise;
+    } else {
+      return this.pendingRequests.get(key) as Promise<T>;
+    }
   }
 }

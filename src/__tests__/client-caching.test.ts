@@ -411,6 +411,9 @@ describe('JsonPlaceholderClient with Caching', () => {
     test('should handle concurrent requests efficiently', async () => {
       const mockPosts = [{ id: 1, userId: 1, title: 'Test', body: 'Body' }];
       
+      // Clear cache before test
+      client.clearCache();
+      
       // Add delay to simulate real API
       let callCount = 0;
       mockAxios.onGet('/posts').reply(() => {
