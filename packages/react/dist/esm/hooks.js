@@ -45,7 +45,7 @@ function useQuery(queryKey, queryFn, options = {}) {
                 isIdle: false,
                 fetchStatus: 'idle'
             });
-            onSuccess === null || onSuccess === void 0 ? void 0 : onSuccess(data);
+            onSuccess?.(data);
         }
         catch (error) {
             if (!isMountedRef.current)
@@ -70,7 +70,7 @@ function useQuery(queryKey, queryFn, options = {}) {
                 isSuccess: false,
                 fetchStatus: 'idle'
             }));
-            onError === null || onError === void 0 ? void 0 : onError(errorInstance);
+            onError?.(errorInstance);
             if (suspense) {
                 throw errorInstance;
             }
@@ -137,7 +137,7 @@ function useMutation(mutationFn, options = {}) {
             isIdle: false
         });
         try {
-            await (onMutate === null || onMutate === void 0 ? void 0 : onMutate(variables));
+            await onMutate?.(variables);
             const data = await mutationFn(variables);
             setState({
                 data,
@@ -147,8 +147,8 @@ function useMutation(mutationFn, options = {}) {
                 isSuccess: true,
                 isIdle: false
             });
-            onSuccess === null || onSuccess === void 0 ? void 0 : onSuccess(data, variables);
-            onSettled === null || onSettled === void 0 ? void 0 : onSettled(data, null, variables);
+            onSuccess?.(data, variables);
+            onSettled?.(data, null, variables);
             return data;
         }
         catch (error) {
@@ -161,8 +161,8 @@ function useMutation(mutationFn, options = {}) {
                 isSuccess: false,
                 isIdle: false
             });
-            onError === null || onError === void 0 ? void 0 : onError(errorInstance, variables);
-            onSettled === null || onSettled === void 0 ? void 0 : onSettled(undefined, errorInstance, variables);
+            onError?.(errorInstance, variables);
+            onSettled?.(undefined, errorInstance, variables);
             throw errorInstance;
         }
     }, [mutationFn, onMutate, onSuccess, onError, onSettled]);

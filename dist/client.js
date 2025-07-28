@@ -209,11 +209,10 @@ class JsonPlaceholderClient {
     addLoggingInterceptor(logRequests = true, logResponses = true) {
         if (logRequests) {
             this.addRequestInterceptor((config) => {
-                var _a;
                 // Only log in development mode
                 if (process.env.NODE_ENV !== 'production') {
                     // eslint-disable-next-line no-console
-                    console.log(`🚀 Request: ${(_a = config.method) === null || _a === void 0 ? void 0 : _a.toUpperCase()} ${config.url}`, {
+                    console.log(`🚀 Request: ${config.method?.toUpperCase()} ${config.url}`, {
                         headers: config.headers,
                         data: config.data
                     });
@@ -280,29 +279,28 @@ class JsonPlaceholderClient {
         };
     }
     handleError(error, context) {
-        var _a, _b, _c, _d;
-        const status = (_a = error.response) === null || _a === void 0 ? void 0 : _a.status;
-        const responseData = (_b = error.response) === null || _b === void 0 ? void 0 : _b.data;
+        const status = error.response?.status;
+        const responseData = error.response?.data;
         switch (status) {
             case 404:
-                if (context === null || context === void 0 ? void 0 : context.includes('post')) {
+                if (context?.includes('post')) {
                     const postId = this.extractPostIdFromContext(context);
                     throw new types_1.PostNotFoundError(postId, responseData);
                 }
                 throw new types_1.ApiClientError('Resource not found', 404, responseData);
             case 400: {
                 const validationErrors = this.extractValidationErrors(responseData);
-                throw new types_1.ValidationError((responseData === null || responseData === void 0 ? void 0 : responseData.message) || 'Validation failed', validationErrors, responseData);
+                throw new types_1.ValidationError(responseData?.message || 'Validation failed', validationErrors, responseData);
             }
             case 429: {
-                const retryAfter = (_d = (_c = error.response) === null || _c === void 0 ? void 0 : _c.headers) === null || _d === void 0 ? void 0 : _d['retry-after'];
+                const retryAfter = error.response?.headers?.['retry-after'];
                 throw new types_1.RateLimitError(retryAfter ? parseInt(retryAfter) : undefined, responseData);
             }
             case 500:
             case 502:
             case 503:
             case 504:
-                throw new types_1.ServerError((responseData === null || responseData === void 0 ? void 0 : responseData.message) || 'Server error occurred', responseData);
+                throw new types_1.ServerError(responseData?.message || 'Server error occurred', responseData);
             default:
                 throw new types_1.ApiClientError(error.message || 'An unexpected error occurred', status || 0, responseData);
         }

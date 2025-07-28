@@ -450,7 +450,7 @@ export class CacheManager {
         try {
             return JSON.stringify(data).length * 2; // Rough estimate for UTF-16
         }
-        catch (_a) {
+        catch {
             return 0;
         }
     }

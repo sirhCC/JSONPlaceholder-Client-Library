@@ -1,29 +1,70 @@
 {
   "compilerOptions": {
-    "target": "ES2018",
+    // Language and Module Settings
+    "target": "ES2020",
     "module": "CommonJS",
-    "lib": ["ES2018", "DOM"],
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "moduleResolution": "node",
+    
+    // Strict Type Checking
     "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": false,
+    
+    // Module Resolution
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,
-    "outDir": "./dist",
+    "allowUmdGlobalAccess": false,
+    
+    // Emit Settings (disabled for IDE)
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "removeComments": false,
+    "importHelpers": false,
+    "noEmit": true,
+    "outDir": "./dist",
+    
+    // Type Checking
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "exactOptionalPropertyTypes": false,
+    "noPropertyAccessFromIndexSignature": false,
+    "noUncheckedIndexedAccess": false,
+    
+    // Advanced
+    "incremental": true,
+    "preserveWatchOutput": true,
+    "pretty": true
   },
+  
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "examples/**/*"
   ],
+  
   "exclude": [
     "node_modules",
     "dist",
     "**/*.test.ts",
-    "**/*.spec.ts"
-  ]
+    "**/*.test.tsx", 
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "src/__tests__/**/*",
+    "tests/**/*"
+  ],
+  
+  "ts-node": {
+    "esm": true
+  }
 }
