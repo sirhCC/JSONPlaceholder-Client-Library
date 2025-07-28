@@ -324,8 +324,8 @@ export class CacheManager {
   private config: CacheConfig;
   private stats: CacheStats;
   private eventListeners: CacheEventListener[] = [];
-  private backgroundRefreshPromises = new Map<string, Promise<any>>();
-  private pendingRequests = new Map<string, Promise<any>>();
+  private backgroundRefreshPromises = new Map<string, Promise<unknown>>();
+  private pendingRequests = new Map<string, Promise<unknown>>();
 
   constructor(config: Partial<CacheConfig> = {}) {
     this.config = {
@@ -535,7 +535,7 @@ export class CacheManager {
   /**
    * Calculate approximate size of data in bytes
    */
-  private calculateSize(data: any): number {
+  private calculateSize(data: unknown): number {
     try {
       return JSON.stringify(data).length * 2; // Rough estimate for UTF-16
     } catch {
@@ -567,7 +567,7 @@ export class CacheManager {
   /**
    * Emit cache event
    */
-  private emitEvent(type: CacheEventType, key: string, metadata?: Record<string, any>): void {
+  private emitEvent(type: CacheEventType, key: string, metadata?: Record<string, unknown>): void {
     const event: CacheEvent = {
       type,
       key,
