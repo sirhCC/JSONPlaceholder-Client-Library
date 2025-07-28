@@ -204,18 +204,25 @@ export class JsonPlaceholderClient {
         if (logRequests) {
             this.addRequestInterceptor((config) => {
                 var _a;
-                console.log(`🚀 Request: ${(_a = config.method) === null || _a === void 0 ? void 0 : _a.toUpperCase()} ${config.url}`, {
-                    headers: config.headers,
-                    data: config.data
-                });
+                // Only log in development mode
+                if (process.env.NODE_ENV !== 'production') {
+                    // eslint-disable-next-line no-console
+                    console.log(`🚀 Request: ${(_a = config.method) === null || _a === void 0 ? void 0 : _a.toUpperCase()} ${config.url}`, {
+                        headers: config.headers,
+                        data: config.data
+                    });
+                }
                 return config;
             });
         }
         if (logResponses) {
             return this.addResponseInterceptor((response) => {
-                console.log(`✅ Response: ${response.status} ${response.config.url}`, {
-                    data: response.data
-                });
+                if (process.env.NODE_ENV !== 'production') {
+                    // eslint-disable-next-line no-console
+                    console.log(`✅ Response: ${response.status} ${response.config.url}`, {
+                        data: response.data
+                    });
+                }
                 return response;
             });
         }
@@ -223,7 +230,9 @@ export class JsonPlaceholderClient {
     }
     addRetryInterceptor(options = { attempts: 3, delay: 1000 }) {
         return this.addResponseInterceptor(undefined, async (error) => {
-            const config = error.config;
+            const axiosError = error;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const config = axiosError.config;
             // Don't retry if no config or already exceeded max attempts
             if (!config || (config.__retryCount || 0) >= (options.attempts || 3)) {
                 throw error;
@@ -232,7 +241,10 @@ export class JsonPlaceholderClient {
             const delay = options.exponentialBackoff
                 ? (options.delay || 1000) * Math.pow(2, config.__retryCount - 1)
                 : (options.delay || 1000);
-            console.log(`⚠️ Retrying request (${config.__retryCount}/${options.attempts}) after ${delay}ms...`);
+            if (process.env.NODE_ENV !== 'production') {
+                // eslint-disable-next-line no-console
+                console.log(`⚠️ Retrying request (${config.__retryCount}/${options.attempts}) after ${delay}ms...`);
+            }
             await new Promise(resolve => setTimeout(resolve, delay));
             return this.client.request(config);
         });
@@ -247,7 +259,7 @@ export class JsonPlaceholderClient {
         return queryParams.toString();
     }
     parsePaginationHeaders(headers, data, options) {
-        const total = parseInt(headers['x-total-count'] || '0', 10);
+        const total = parseInt(String(headers['x-total-count'] || '0'), 10);
         const page = options._page || 1;
         const limit = options._limit || 10;
         return {
@@ -272,12 +284,14 @@ export class JsonPlaceholderClient {
                     throw new PostNotFoundError(postId, responseData);
                 }
                 throw new ApiClientError('Resource not found', 404, responseData);
-            case 400:
+            case 400: {
                 const validationErrors = this.extractValidationErrors(responseData);
                 throw new ValidationError((responseData === null || responseData === void 0 ? void 0 : responseData.message) || 'Validation failed', validationErrors, responseData);
-            case 429:
+            }
+            case 429: {
                 const retryAfter = (_d = (_c = error.response) === null || _c === void 0 ? void 0 : _c.headers) === null || _d === void 0 ? void 0 : _d['retry-after'];
                 throw new RateLimitError(retryAfter ? parseInt(retryAfter) : undefined, responseData);
+            }
             case 500:
             case 502:
             case 503:
@@ -292,11 +306,14 @@ export class JsonPlaceholderClient {
         return match ? parseInt(match[1]) : 0;
     }
     extractValidationErrors(responseData) {
-        if ((responseData === null || responseData === void 0 ? void 0 : responseData.errors) && Array.isArray(responseData.errors)) {
-            return responseData.errors;
-        }
-        if ((responseData === null || responseData === void 0 ? void 0 : responseData.message) && typeof responseData.message === 'string') {
-            return [responseData.message];
+        if (typeof responseData === 'object' && responseData !== null) {
+            const data = responseData;
+            if (data.errors && Array.isArray(data.errors)) {
+                return data.errors;
+            }
+            if (data.message && typeof data.message === 'string') {
+                return [data.message];
+            }
         }
         return undefined;
     }
