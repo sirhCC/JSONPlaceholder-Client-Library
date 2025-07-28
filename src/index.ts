@@ -66,3 +66,25 @@ export type {
   PerformanceEventListener
 } from './performance';
 export { PerformanceMonitor, PerformanceDashboard } from './performance';
+
+// Error recovery - optional feature
+export type {
+  ErrorRecoveryConfig,
+  CircuitBreakerConfig,
+  RetryConfig,
+  FallbackConfig,
+  HealthCheckConfig,
+  CircuitBreakerStats,
+  ErrorRecoveryEvent,
+  ErrorRecoveryEventListener,
+  CircuitState,
+  RetryAttempt
+} from './error-recovery';
+
+export {
+  ErrorRecoveryManager,
+  ErrorRecoveryDashboard,
+  CircuitBreaker,
+  RetryManager,
+  FallbackManager
+} from './error-recovery';
