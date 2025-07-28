@@ -10,6 +10,21 @@
       "import": "./dist/esm/index.js",
       "require": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./core": {
+      "import": "./dist/esm/core.js",
+      "require": "./dist/core.js",
+      "types": "./dist/core.d.ts"
+    },
+    "./caching": {
+      "import": "./dist/esm/caching.js", 
+      "require": "./dist/caching.js",
+      "types": "./dist/caching.d.ts"
+    },
+    "./logging": {
+      "import": "./dist/esm/logging.js",
+      "require": "./dist/logging.js", 
+      "types": "./dist/logging.d.ts"
     }
   },
   "files": [
