@@ -485,4 +485,3 @@ class PerformanceDashboard {
     }
 }
 exports.PerformanceDashboard = PerformanceDashboard;
-//# sourceMappingURL=performance.js.map
