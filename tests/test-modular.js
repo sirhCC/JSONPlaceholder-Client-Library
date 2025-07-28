@@ -5,7 +5,7 @@ console.log('🧪 Testing Modular Imports...\n');
 
 // Test 1: Core-only import (smallest bundle)
 try {
-  const core = require('./dist/core');
+  const core = require('../dist/core');
   console.log('✅ Core import successful');
   console.log('   - Client:', typeof core.JsonPlaceholderClient);
   console.log('   - Has caching?', 'CacheManager' in core ? 'YES' : 'NO');
@@ -16,7 +16,7 @@ try {
 
 // Test 2: Caching module (includes core + caching)
 try {
-  const caching = require('./dist/caching');
+  const caching = require('../dist/caching');
   console.log('\n✅ Caching import successful');
   console.log('   - Client:', typeof caching.JsonPlaceholderClient);
   console.log('   - CacheManager:', typeof caching.CacheManager);
@@ -27,7 +27,7 @@ try {
 
 // Test 3: Logging module (includes core + logging)
 try {
-  const logging = require('./dist/logging');
+  const logging = require('../dist/logging');
   console.log('\n✅ Logging import successful');
   console.log('   - Client:', typeof logging.JsonPlaceholderClient);
   console.log('   - Logger:', typeof logging.Logger);
@@ -38,7 +38,7 @@ try {
 
 // Test 4: Full library import
 try {
-  const full = require('./dist/index');
+  const full = require('../dist/index');
   console.log('\n✅ Full library import successful');
   console.log('   - Client:', typeof full.JsonPlaceholderClient);
   console.log('   - CacheManager:', typeof full.CacheManager);
