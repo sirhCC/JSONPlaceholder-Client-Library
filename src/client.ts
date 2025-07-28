@@ -37,6 +37,13 @@ import {
   PerformanceEventListener,
   PerformanceMetric
 } from './performance';
+import {
+  ErrorRecoveryManager,
+  ErrorRecoveryDashboard,
+  ErrorRecoveryConfig,
+  ErrorRecoveryEventListener,
+  CircuitBreakerStats
+} from './error-recovery';
 
 const defaultApiUrl = 'https://jsonplaceholder.typicode.com';
 
@@ -44,6 +51,7 @@ export interface ClientConfig {
   cacheConfig?: Partial<CacheConfig>;
   loggerConfig?: Partial<LoggerConfig> | ILogger;
   performanceConfig?: Partial<PerformanceConfig>;
+  errorRecoveryConfig?: Partial<ErrorRecoveryConfig>;
 }
 
 export class JsonPlaceholderClient {
@@ -55,6 +63,8 @@ export class JsonPlaceholderClient {
   private logger: ILogger;
   private performanceMonitor: PerformanceMonitor;
   private performanceDashboard: PerformanceDashboard;
+  private errorRecoveryManager: ErrorRecoveryManager;
+  private errorRecoveryDashboard: ErrorRecoveryDashboard;
 
   constructor(baseURL: string = defaultApiUrl, config?: ClientConfig) {
     this.client = axios.create({
@@ -69,6 +79,8 @@ export class JsonPlaceholderClient {
     this.cacheManager = new CacheManager(config?.cacheConfig, this.logger);
     this.performanceMonitor = new PerformanceMonitor(config?.performanceConfig);
     this.performanceDashboard = new PerformanceDashboard(this.performanceMonitor);
+    this.errorRecoveryManager = new ErrorRecoveryManager(config?.errorRecoveryConfig);
+    this.errorRecoveryDashboard = new ErrorRecoveryDashboard(this.errorRecoveryManager);
     this.setupDefaultInterceptors();
     this.setupPerformanceTracking();
   }
@@ -605,19 +617,43 @@ export class JsonPlaceholderClient {
     return undefined;
   }
 
+  /**
+   * Wrapper method that adds error recovery to HTTP requests
+   */
+  private async executeWithErrorRecovery<T>(
+    operation: () => Promise<T>,
+    fallbackOperations: (() => Promise<T>)[] = []
+  ): Promise<T> {
+    return this.errorRecoveryManager.execute(operation, fallbackOperations);
+  }
+
   async getPosts(cacheOptions: CacheOptions = {}): Promise<Post[]> {
     try {
-      return await this.handleCachedRequest(
-        {
-          method: 'GET',
-          url: '/posts',
-          params: {}
-        },
-        async () => {
-          const response = await this.client.get<Post[]>('/posts');
-          return response.data;
-        },
-        cacheOptions
+      return await this.executeWithErrorRecovery<Post[]>(
+        () => this.handleCachedRequest(
+          {
+            method: 'GET',
+            url: '/posts',
+            params: {}
+          },
+          async () => {
+            const response = await this.client.get<Post[]>('/posts');
+            return response.data;
+          },
+          cacheOptions
+        ),
+        // Fallback: try to get stale cache data
+        [
+          async () => {
+            const key = this.cacheManager.generateKey({ method: 'GET', url: '/posts', params: {} });
+            const cachedData = await this.cacheManager.get(key) as Post[];
+            if (cachedData) {
+              this.logger.warn('Using stale cache data as fallback for getPosts');
+              return cachedData;
+            }
+            throw new Error('No fallback data available');
+          }
+        ]
       );
     } catch (error) {
       this.handleError(error as AxiosError, 'posts');
@@ -812,5 +848,91 @@ export class JsonPlaceholderClient {
     } catch (error) {
       this.handleError(error as AxiosError, `post/${id}`);
     }
+  }
+
+  // Error Recovery Management Methods
+  
+  /**
+   * Get circuit breaker statistics
+   */
+  getCircuitBreakerStats(): CircuitBreakerStats {
+    return this.errorRecoveryManager.getCircuitBreakerStats();
+  }
+
+  /**
+   * Add event listener for error recovery events
+   */
+  addErrorRecoveryEventListener(listener: ErrorRecoveryEventListener): void {
+    this.errorRecoveryManager.addEventListener(listener);
+  }
+
+  /**
+   * Remove event listener for error recovery events
+   */
+  removeErrorRecoveryEventListener(listener: ErrorRecoveryEventListener): void {
+    this.errorRecoveryManager.removeEventListener(listener);
+  }
+
+  /**
+   * Manually open the circuit breaker
+   */
+  forceCircuitOpen(): void {
+    this.errorRecoveryManager.forceCircuitOpen();
+  }
+
+  /**
+   * Manually close the circuit breaker
+   */
+  forceCircuitClose(): void {
+    this.errorRecoveryManager.forceCircuitClose();
+  }
+
+  /**
+   * Reset error recovery state
+   */
+  resetErrorRecovery(): void {
+    this.errorRecoveryManager.reset();
+  }
+
+  /**
+   * Get error recovery configuration
+   */
+  getErrorRecoveryConfig(): ErrorRecoveryConfig {
+    return this.errorRecoveryManager.getConfig();
+  }
+
+  /**
+   * Update error recovery configuration
+   */
+  updateErrorRecoveryConfig(config: Partial<ErrorRecoveryConfig>): void {
+    this.errorRecoveryManager.updateConfig(config);
+  }
+
+  /**
+   * Print error recovery dashboard report
+   */
+  printErrorRecoveryReport(): void {
+    this.errorRecoveryDashboard.printReport();
+  }
+
+  /**
+   * Print error recovery insights
+   */
+  printErrorRecoveryInsights(): void {
+    this.errorRecoveryDashboard.printInsights();
+  }
+
+  /**
+   * Get error recovery dashboard report as string
+   */
+  getErrorRecoveryReport(): string {
+    return this.errorRecoveryDashboard.getReport();
+  }
+
+  /**
+   * Get error recovery insights as array
+   */
+  getErrorRecoveryInsights(): string[] {
+    return this.errorRecoveryDashboard.getInsights();
   }
 }
