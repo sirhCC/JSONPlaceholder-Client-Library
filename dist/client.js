@@ -8,6 +8,7 @@ const axios_1 = __importDefault(require("axios"));
 const types_1 = require("./types");
 const cache_1 = require("./cache");
 const logger_1 = require("./logger");
+const performance_1 = require("./performance");
 const defaultApiUrl = 'https://jsonplaceholder.typicode.com';
 class JsonPlaceholderClient {
     constructor(baseURL = defaultApiUrl, config) {
@@ -23,7 +24,10 @@ class JsonPlaceholderClient {
         });
         this.logger = (0, logger_1.createLogger)(config?.loggerConfig);
         this.cacheManager = new cache_1.CacheManager(config?.cacheConfig, this.logger);
+        this.performanceMonitor = new performance_1.PerformanceMonitor(config?.performanceConfig);
+        this.performanceDashboard = new performance_1.PerformanceDashboard(this.performanceMonitor);
         this.setupDefaultInterceptors();
+        this.setupPerformanceTracking();
     }
     setupDefaultInterceptors() {
         // Request interceptor to apply all custom request interceptors
@@ -68,6 +72,63 @@ class JsonPlaceholderClient {
             // Re-throw the error for normal error handling
             throw modifiedError;
         });
+    }
+    setupPerformanceTracking() {
+        // Add performance tracking to all requests
+        this.addRequestInterceptor((config) => {
+            // Add start time to track request duration
+            config.startTime = Date.now();
+            return config;
+        });
+        this.addResponseInterceptor((response) => {
+            // Track successful requests
+            const startTime = response.config?.startTime || Date.now();
+            const duration = Date.now() - startTime;
+            this.performanceMonitor.recordMetric({
+                timestamp: Date.now(),
+                duration,
+                method: response.config.method?.toUpperCase() || 'GET',
+                url: response.config.url || '',
+                cacheHit: false, // Will be updated by cache tracking
+                status: response.status,
+                size: this.calculateResponseSize(response.data)
+            });
+            return response;
+        }, (error) => {
+            // Track failed requests
+            const axiosError = error;
+            const startTime = axiosError.config?.startTime || Date.now();
+            const duration = Date.now() - startTime;
+            this.performanceMonitor.recordMetric({
+                timestamp: Date.now(),
+                duration,
+                method: axiosError.config?.method?.toUpperCase() || 'GET',
+                url: axiosError.config?.url || '',
+                cacheHit: false,
+                status: axiosError.response?.status || 0,
+                error: axiosError.message
+            });
+            throw error;
+        });
+        // Track cache performance
+        this.addCacheEventListener((event) => {
+            if (event.type === 'hit' || event.type === 'miss') {
+                // Update the latest metric to reflect cache hit/miss
+                const data = this.performanceMonitor.exportData();
+                const latestMetric = data.metrics[data.metrics.length - 1];
+                if (latestMetric && Date.now() - latestMetric.timestamp < 1000) {
+                    latestMetric.cacheHit = event.type === 'hit';
+                }
+            }
+        });
+    }
+    calculateResponseSize(data) {
+        try {
+            return JSON.stringify(data).length;
+        }
+        catch {
+            return 0;
+        }
     }
     // Interceptor management methods
     addRequestInterceptor(interceptor) {
@@ -182,6 +243,77 @@ class JsonPlaceholderClient {
      */
     removeCacheEventListener(listener) {
         this.cacheManager.removeEventListener(listener);
+    }
+    // Performance Monitoring Methods
+    /**
+     * Get performance statistics
+     */
+    getPerformanceStats() {
+        return this.performanceMonitor.getStats();
+    }
+    /**
+     * Get performance dashboard report
+     */
+    getPerformanceReport() {
+        return this.performanceDashboard.getReport();
+    }
+    /**
+     * Print performance report to console
+     */
+    printPerformanceReport() {
+        this.performanceDashboard.printReport();
+    }
+    /**
+     * Get performance insights
+     */
+    getPerformanceInsights() {
+        return this.performanceDashboard.getInsights();
+    }
+    /**
+     * Print performance insights to console
+     */
+    printPerformanceInsights() {
+        this.performanceDashboard.printInsights();
+    }
+    /**
+     * Add performance event listener
+     */
+    addPerformanceEventListener(listener) {
+        this.performanceMonitor.addEventListener(listener);
+    }
+    /**
+     * Remove performance event listener
+     */
+    removePerformanceEventListener(listener) {
+        this.performanceMonitor.removeEventListener(listener);
+    }
+    /**
+     * Configure performance monitoring
+     */
+    configurePerformanceMonitoring(config) {
+        this.performanceMonitor.updateConfig(config);
+    }
+    /**
+     * Enable/disable performance monitoring
+     */
+    setPerformanceMonitoringEnabled(enabled) {
+        this.performanceMonitor.setEnabled(enabled);
+    }
+    /**
+     * Clear performance data
+     */
+    clearPerformanceData() {
+        this.performanceMonitor.clear();
+    }
+    /**
+     * Export performance data
+     */
+    exportPerformanceData() {
+        const data = this.performanceMonitor.exportData();
+        return {
+            metrics: data.metrics,
+            stats: data.stats
+        };
     }
     /**
      * Internal method to handle cached requests

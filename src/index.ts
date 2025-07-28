@@ -53,3 +53,16 @@ export type {
   RequestConfig,
   ResponseData
 } from './types';
+
+// Performance monitoring - optional feature
+export type {
+  PerformanceMetric,
+  PerformanceStats,
+  PerformanceTrend,
+  PerformanceAlert,
+  PerformanceConfig,
+  PerformanceEvent,
+  PerformanceEventType,
+  PerformanceEventListener
+} from './performance';
+export { PerformanceMonitor, PerformanceDashboard } from './performance';

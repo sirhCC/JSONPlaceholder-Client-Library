@@ -7,4 +7,6 @@ export { CacheManager, MemoryCacheStorage, LocalStorageCacheStorage, SessionStor
 export type { LogLevel, LoggerConfig, ILogger } from './types';
 export { Logger, SilentLogger, createLogger, defaultLogger } from './logger';
 export type { RequestInterceptor, ResponseInterceptor, ResponseErrorInterceptor, InterceptorOptions, RequestConfig, ResponseData } from './types';
+export type { PerformanceMetric, PerformanceStats, PerformanceTrend, PerformanceAlert, PerformanceConfig, PerformanceEvent, PerformanceEventType, PerformanceEventListener } from './performance';
+export { PerformanceMonitor, PerformanceDashboard } from './performance';
 //# sourceMappingURL=index.d.ts.map

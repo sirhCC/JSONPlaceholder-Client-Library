@@ -29,12 +29,21 @@ import {
 } from './types';
 import { CacheManager } from './cache';
 import { createLogger } from './logger';
+import { 
+  PerformanceMonitor, 
+  PerformanceDashboard, 
+  PerformanceStats, 
+  PerformanceConfig, 
+  PerformanceEventListener,
+  PerformanceMetric
+} from './performance';
 
 const defaultApiUrl = 'https://jsonplaceholder.typicode.com';
 
 export interface ClientConfig {
   cacheConfig?: Partial<CacheConfig>;
   loggerConfig?: Partial<LoggerConfig> | ILogger;
+  performanceConfig?: Partial<PerformanceConfig>;
 }
 
 export class JsonPlaceholderClient {
@@ -44,6 +53,8 @@ export class JsonPlaceholderClient {
   private responseErrorInterceptors: ResponseErrorInterceptor[] = [];
   private cacheManager: CacheManager;
   private logger: ILogger;
+  private performanceMonitor: PerformanceMonitor;
+  private performanceDashboard: PerformanceDashboard;
 
   constructor(baseURL: string = defaultApiUrl, config?: ClientConfig) {
     this.client = axios.create({
@@ -56,7 +67,10 @@ export class JsonPlaceholderClient {
 
     this.logger = createLogger(config?.loggerConfig);
     this.cacheManager = new CacheManager(config?.cacheConfig, this.logger);
+    this.performanceMonitor = new PerformanceMonitor(config?.performanceConfig);
+    this.performanceDashboard = new PerformanceDashboard(this.performanceMonitor);
     this.setupDefaultInterceptors();
+    this.setupPerformanceTracking();
   }
 
   private setupDefaultInterceptors(): void {
@@ -110,6 +124,73 @@ export class JsonPlaceholderClient {
         throw modifiedError;
       }
     );
+  }
+
+  private setupPerformanceTracking(): void {
+    // Add performance tracking to all requests
+    this.addRequestInterceptor((config) => {
+      // Add start time to track request duration
+      (config as RequestConfig & { startTime?: number }).startTime = Date.now();
+      return config;
+    });
+
+    this.addResponseInterceptor(
+      (response) => {
+        // Track successful requests
+        const startTime = (response.config as RequestConfig & { startTime?: number })?.startTime || Date.now();
+        const duration = Date.now() - startTime;
+        
+        this.performanceMonitor.recordMetric({
+          timestamp: Date.now(),
+          duration,
+          method: response.config.method?.toUpperCase() || 'GET',
+          url: response.config.url || '',
+          cacheHit: false, // Will be updated by cache tracking
+          status: response.status,
+          size: this.calculateResponseSize(response.data)
+        });
+
+        return response;
+      },
+      (error) => {
+        // Track failed requests
+        const axiosError = error as AxiosError;
+        const startTime = (axiosError.config as RequestConfig & { startTime?: number })?.startTime || Date.now();
+        const duration = Date.now() - startTime;
+        
+        this.performanceMonitor.recordMetric({
+          timestamp: Date.now(),
+          duration,
+          method: axiosError.config?.method?.toUpperCase() || 'GET',
+          url: axiosError.config?.url || '',
+          cacheHit: false,
+          status: axiosError.response?.status || 0,
+          error: axiosError.message
+        });
+
+        throw error;
+      }
+    );
+
+    // Track cache performance
+    this.addCacheEventListener((event) => {
+      if (event.type === 'hit' || event.type === 'miss') {
+        // Update the latest metric to reflect cache hit/miss
+        const data = this.performanceMonitor.exportData();
+        const latestMetric = data.metrics[data.metrics.length - 1];
+        if (latestMetric && Date.now() - latestMetric.timestamp < 1000) {
+          latestMetric.cacheHit = event.type === 'hit';
+        }
+      }
+    });
+  }
+
+  private calculateResponseSize(data: unknown): number {
+    try {
+      return JSON.stringify(data).length;
+    } catch {
+      return 0;
+    }
   }
 
   // Interceptor management methods
@@ -259,6 +340,92 @@ export class JsonPlaceholderClient {
    */
   removeCacheEventListener(listener: (event: CacheEvent) => void): void {
     this.cacheManager.removeEventListener(listener);
+  }
+
+  // Performance Monitoring Methods
+
+  /**
+   * Get performance statistics
+   */
+  getPerformanceStats(): PerformanceStats {
+    return this.performanceMonitor.getStats();
+  }
+
+  /**
+   * Get performance dashboard report
+   */
+  getPerformanceReport(): string {
+    return this.performanceDashboard.getReport();
+  }
+
+  /**
+   * Print performance report to console
+   */
+  printPerformanceReport(): void {
+    this.performanceDashboard.printReport();
+  }
+
+  /**
+   * Get performance insights
+   */
+  getPerformanceInsights(): string[] {
+    return this.performanceDashboard.getInsights();
+  }
+
+  /**
+   * Print performance insights to console
+   */
+  printPerformanceInsights(): void {
+    this.performanceDashboard.printInsights();
+  }
+
+  /**
+   * Add performance event listener
+   */
+  addPerformanceEventListener(listener: PerformanceEventListener): void {
+    this.performanceMonitor.addEventListener(listener);
+  }
+
+  /**
+   * Remove performance event listener
+   */
+  removePerformanceEventListener(listener: PerformanceEventListener): void {
+    this.performanceMonitor.removeEventListener(listener);
+  }
+
+  /**
+   * Configure performance monitoring
+   */
+  configurePerformanceMonitoring(config: Partial<PerformanceConfig>): void {
+    this.performanceMonitor.updateConfig(config);
+  }
+
+  /**
+   * Enable/disable performance monitoring
+   */
+  setPerformanceMonitoringEnabled(enabled: boolean): void {
+    this.performanceMonitor.setEnabled(enabled);
+  }
+
+  /**
+   * Clear performance data
+   */
+  clearPerformanceData(): void {
+    this.performanceMonitor.clear();
+  }
+
+  /**
+   * Export performance data
+   */
+  exportPerformanceData(): {
+    metrics: PerformanceMetric[];
+    stats: PerformanceStats;
+  } {
+    const data = this.performanceMonitor.exportData();
+    return {
+      metrics: data.metrics,
+      stats: data.stats
+    };
   }
 
   /**

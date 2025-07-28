@@ -1,8 +1,10 @@
 import { AxiosInstance } from 'axios';
 import { Post, Comment, User, PostSearchOptions, CommentSearchOptions, UserSearchOptions, PaginatedResponse, RequestInterceptor, ResponseInterceptor, ResponseErrorInterceptor, InterceptorOptions, CacheConfig, CacheOptions, CacheStats, CacheEvent, ILogger, LoggerConfig } from './types';
+import { PerformanceStats, PerformanceConfig, PerformanceEventListener, PerformanceMetric } from './performance';
 export interface ClientConfig {
     cacheConfig?: Partial<CacheConfig>;
     loggerConfig?: Partial<LoggerConfig> | ILogger;
+    performanceConfig?: Partial<PerformanceConfig>;
 }
 export declare class JsonPlaceholderClient {
     client: AxiosInstance;
@@ -11,8 +13,12 @@ export declare class JsonPlaceholderClient {
     private responseErrorInterceptors;
     private cacheManager;
     private logger;
+    private performanceMonitor;
+    private performanceDashboard;
     constructor(baseURL?: string, config?: ClientConfig);
     private setupDefaultInterceptors;
+    private setupPerformanceTracking;
+    private calculateResponseSize;
     addRequestInterceptor(interceptor: RequestInterceptor): number;
     addResponseInterceptor(onFulfilled?: ResponseInterceptor, onRejected?: ResponseErrorInterceptor): number;
     removeRequestInterceptor(index: number): void;
@@ -62,6 +68,53 @@ export declare class JsonPlaceholderClient {
      * Remove cache event listener
      */
     removeCacheEventListener(listener: (event: CacheEvent) => void): void;
+    /**
+     * Get performance statistics
+     */
+    getPerformanceStats(): PerformanceStats;
+    /**
+     * Get performance dashboard report
+     */
+    getPerformanceReport(): string;
+    /**
+     * Print performance report to console
+     */
+    printPerformanceReport(): void;
+    /**
+     * Get performance insights
+     */
+    getPerformanceInsights(): string[];
+    /**
+     * Print performance insights to console
+     */
+    printPerformanceInsights(): void;
+    /**
+     * Add performance event listener
+     */
+    addPerformanceEventListener(listener: PerformanceEventListener): void;
+    /**
+     * Remove performance event listener
+     */
+    removePerformanceEventListener(listener: PerformanceEventListener): void;
+    /**
+     * Configure performance monitoring
+     */
+    configurePerformanceMonitoring(config: Partial<PerformanceConfig>): void;
+    /**
+     * Enable/disable performance monitoring
+     */
+    setPerformanceMonitoringEnabled(enabled: boolean): void;
+    /**
+     * Clear performance data
+     */
+    clearPerformanceData(): void;
+    /**
+     * Export performance data
+     */
+    exportPerformanceData(): {
+        metrics: PerformanceMetric[];
+        stats: PerformanceStats;
+    };
     /**
      * Internal method to handle cached requests
      */

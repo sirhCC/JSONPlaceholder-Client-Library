@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.defaultLogger = exports.createLogger = exports.SilentLogger = exports.Logger = exports.SessionStorageCacheStorage = exports.LocalStorageCacheStorage = exports.MemoryCacheStorage = exports.CacheManager = exports.RateLimitError = exports.ServerError = exports.ValidationError = exports.PostNotFoundError = exports.ApiClientError = exports.JsonPlaceholderClient = void 0;
+exports.PerformanceDashboard = exports.PerformanceMonitor = exports.defaultLogger = exports.createLogger = exports.SilentLogger = exports.Logger = exports.SessionStorageCacheStorage = exports.LocalStorageCacheStorage = exports.MemoryCacheStorage = exports.CacheManager = exports.RateLimitError = exports.ServerError = exports.ValidationError = exports.PostNotFoundError = exports.ApiClientError = exports.JsonPlaceholderClient = void 0;
 // Main client export
 var client_1 = require("./client");
 Object.defineProperty(exports, "JsonPlaceholderClient", { enumerable: true, get: function () { return client_1.JsonPlaceholderClient; } });
@@ -21,4 +21,7 @@ Object.defineProperty(exports, "Logger", { enumerable: true, get: function () { 
 Object.defineProperty(exports, "SilentLogger", { enumerable: true, get: function () { return logger_1.SilentLogger; } });
 Object.defineProperty(exports, "createLogger", { enumerable: true, get: function () { return logger_1.createLogger; } });
 Object.defineProperty(exports, "defaultLogger", { enumerable: true, get: function () { return logger_1.defaultLogger; } });
+var performance_1 = require("./performance");
+Object.defineProperty(exports, "PerformanceMonitor", { enumerable: true, get: function () { return performance_1.PerformanceMonitor; } });
+Object.defineProperty(exports, "PerformanceDashboard", { enumerable: true, get: function () { return performance_1.PerformanceDashboard; } });
 //# sourceMappingURL=index.js.map
