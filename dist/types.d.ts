@@ -61,10 +61,10 @@ export interface RequestConfig {
     method: string;
     url: string;
     headers: Record<string, string>;
-    data?: any;
-    params?: Record<string, any>;
+    data?: unknown;
+    params?: Record<string, unknown>;
 }
-export interface ResponseData<T = any> {
+export interface ResponseData<T = unknown> {
     data: T;
     status: number;
     statusText: string;
@@ -73,7 +73,7 @@ export interface ResponseData<T = any> {
 }
 export type RequestInterceptor = (config: RequestConfig) => RequestConfig | Promise<RequestConfig>;
 export type ResponseInterceptor = (response: ResponseData) => ResponseData | Promise<ResponseData>;
-export type ResponseErrorInterceptor = (error: any) => any | Promise<any>;
+export type ResponseErrorInterceptor = (error: Error) => Error | Promise<Error>;
 export interface InterceptorOptions {
     retry?: {
         attempts: number;
@@ -91,7 +91,7 @@ export interface CacheConfig {
     backgroundRefresh: boolean;
     refreshThreshold: number;
 }
-export interface CacheEntry<T = any> {
+export interface CacheEntry<T = unknown> {
     data: T;
     timestamp: number;
     ttl: number;
@@ -121,8 +121,8 @@ export interface CacheOptions {
 export interface CacheKey {
     method: string;
     url: string;
-    params?: Record<string, any>;
-    data?: any;
+    params?: Record<string, unknown>;
+    data?: unknown;
 }
 export interface ICacheStorage {
     get<T>(key: string): Promise<CacheEntry<T> | null>;
@@ -137,27 +137,27 @@ export interface CacheEvent {
     type: CacheEventType;
     key: string;
     timestamp: number;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
 }
 export type CacheEventListener = (event: CacheEvent) => void;
 export declare class ApiClientError extends Error {
     readonly status: number;
-    readonly response?: any;
-    constructor(message: string, status: number, response?: any);
+    readonly response?: unknown;
+    constructor(message: string, status: number, response?: unknown);
 }
 export declare class PostNotFoundError extends ApiClientError {
-    constructor(postId: number, response?: any);
+    constructor(postId: number, response?: unknown);
 }
 export declare class ValidationError extends ApiClientError {
     readonly validationErrors?: string[];
-    constructor(message: string, validationErrors?: string[], response?: any);
+    constructor(message: string, validationErrors?: string[], response?: unknown);
 }
 export declare class ServerError extends ApiClientError {
-    constructor(message?: string, response?: any);
+    constructor(message?: string, response?: unknown);
 }
 export declare class RateLimitError extends ApiClientError {
     readonly retryAfter?: number;
-    constructor(retryAfter?: number, response?: any);
+    constructor(retryAfter?: number, response?: unknown);
 }
 export interface Post {
     userId: number;
