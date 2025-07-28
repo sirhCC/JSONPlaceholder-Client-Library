@@ -7,9 +7,10 @@ exports.JsonPlaceholderClient = void 0;
 const axios_1 = __importDefault(require("axios"));
 const types_1 = require("./types");
 const cache_1 = require("./cache");
+const logger_1 = require("./logger");
 const defaultApiUrl = 'https://jsonplaceholder.typicode.com';
 class JsonPlaceholderClient {
-    constructor(baseURL = defaultApiUrl, cacheConfig) {
+    constructor(baseURL = defaultApiUrl, config) {
         this.requestInterceptors = [];
         this.responseInterceptors = [];
         this.responseErrorInterceptors = [];
@@ -20,7 +21,8 @@ class JsonPlaceholderClient {
                 'Content-Type': 'application/json',
             },
         });
-        this.cacheManager = new cache_1.CacheManager(cacheConfig);
+        this.logger = (0, logger_1.createLogger)(config?.loggerConfig);
+        this.cacheManager = new cache_1.CacheManager(config?.cacheConfig, this.logger);
         this.setupDefaultInterceptors();
     }
     setupDefaultInterceptors() {
@@ -210,24 +212,18 @@ class JsonPlaceholderClient {
         if (logRequests) {
             this.addRequestInterceptor((config) => {
                 // Only log in development mode
-                if (process.env.NODE_ENV !== 'production') {
-                    // eslint-disable-next-line no-console
-                    console.log(`🚀 Request: ${config.method?.toUpperCase()} ${config.url}`, {
-                        headers: config.headers,
-                        data: config.data
-                    });
-                }
+                this.logger.debug(`🚀 Request: ${config.method?.toUpperCase()} ${config.url}`, {
+                    headers: config.headers,
+                    data: config.data
+                });
                 return config;
             });
         }
         if (logResponses) {
             return this.addResponseInterceptor((response) => {
-                if (process.env.NODE_ENV !== 'production') {
-                    // eslint-disable-next-line no-console
-                    console.log(`✅ Response: ${response.status} ${response.config.url}`, {
-                        data: response.data
-                    });
-                }
+                this.logger.debug(`✅ Response: ${response.status} ${response.config.url}`, {
+                    data: response.data
+                });
                 return response;
             });
         }
@@ -247,8 +243,7 @@ class JsonPlaceholderClient {
                 ? (options.delay || 1000) * Math.pow(2, config.__retryCount - 1)
                 : (options.delay || 1000);
             if (process.env.NODE_ENV !== 'production') {
-                // eslint-disable-next-line no-console
-                console.log(`⚠️ Retrying request (${config.__retryCount}/${options.attempts}) after ${delay}ms...`);
+                this.logger.info(`⚠️ Retrying request (${config.__retryCount}/${options.attempts}) after ${delay}ms...`);
             }
             await new Promise(resolve => setTimeout(resolve, delay));
             return this.client.request(config);

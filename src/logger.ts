@@ -3,23 +3,7 @@
  * Provides configurable logging with different levels and silent mode for production
  */
 
-export type LogLevel = 'silent' | 'error' | 'warn' | 'info' | 'debug';
-
-export interface LoggerConfig {
-  level: LogLevel;
-  prefix?: string;
-  timestamp?: boolean;
-  colors?: boolean;
-}
-
-export interface ILogger {
-  error(message: string, ...args: unknown[]): void;
-  warn(message: string, ...args: unknown[]): void;
-  info(message: string, ...args: unknown[]): void;
-  debug(message: string, ...args: unknown[]): void;
-  setLevel(level: LogLevel): void;
-  getLevel(): LogLevel;
-}
+import { LogLevel, LoggerConfig, ILogger } from './types';
 
 /**
  * Default logger implementation

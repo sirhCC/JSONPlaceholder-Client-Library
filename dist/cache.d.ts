@@ -1,4 +1,4 @@
-import { CacheConfig, CacheEntry, CacheStats, CacheOptions, CacheKey, ICacheStorage, CacheEventListener } from './types';
+import { CacheConfig, CacheEntry, CacheStats, CacheOptions, CacheKey, ICacheStorage, CacheEventListener, ILogger } from './types';
 /**
  * Memory-based cache storage implementation
  */
@@ -20,7 +20,8 @@ export declare class MemoryCacheStorage implements ICacheStorage {
 export declare class LocalStorageCacheStorage implements ICacheStorage {
     protected keyPrefix: string;
     protected maxSize: number;
-    constructor(keyPrefix?: string, maxSize?: number);
+    protected logger: ILogger;
+    constructor(keyPrefix?: string, maxSize?: number, logger?: ILogger);
     get<T>(key: string): Promise<CacheEntry<T> | null>;
     set<T>(key: string, entry: CacheEntry<T>): Promise<void>;
     delete(key: string): Promise<void>;
@@ -51,7 +52,8 @@ export declare class CacheManager {
     private eventListeners;
     private backgroundRefreshPromises;
     private pendingRequests;
-    constructor(config?: Partial<CacheConfig>);
+    private logger;
+    constructor(config?: Partial<CacheConfig>, logger?: ILogger);
     private createStorage;
     /**
      * Generate a cache key from request parameters

@@ -297,25 +297,19 @@ export class JsonPlaceholderClient {
     if (logRequests) {
       this.addRequestInterceptor((config) => {
         // Only log in development mode
-        if (process.env.NODE_ENV !== 'production') {
-          // eslint-disable-next-line no-console
-          console.log(`🚀 Request: ${config.method?.toUpperCase()} ${config.url}`, {
-            headers: config.headers,
-            data: config.data
-          });
-        }
+        this.logger.debug(`🚀 Request: ${config.method?.toUpperCase()} ${config.url}`, {
+          headers: config.headers,
+          data: config.data
+        });
         return config;
       });
     }
 
     if (logResponses) {
       return this.addResponseInterceptor((response) => {
-        if (process.env.NODE_ENV !== 'production') {
-          // eslint-disable-next-line no-console
-          console.log(`✅ Response: ${response.status} ${response.config.url}`, {
-            data: response.data
-          });
-        }
+        this.logger.debug(`✅ Response: ${response.status} ${response.config.url}`, {
+          data: response.data
+        });
         return response;
       });
     }
@@ -343,8 +337,7 @@ export class JsonPlaceholderClient {
           : (options.delay || 1000);
 
         if (process.env.NODE_ENV !== 'production') {
-          // eslint-disable-next-line no-console
-          console.log(`⚠️ Retrying request (${config.__retryCount}/${options.attempts}) after ${delay}ms...`);
+        this.logger.info(`⚠️ Retrying request (${config.__retryCount}/${options.attempts}) after ${delay}ms...`);
         }
         
         await new Promise(resolve => setTimeout(resolve, delay));

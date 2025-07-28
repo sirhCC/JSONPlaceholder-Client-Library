@@ -286,8 +286,7 @@ function useMutation<TData, TVariables>(
     try {
       return await mutateAsync(variables);
     } catch (error) {
-      // Silently catch errors for fire-and-forget mutations
-      console.error('Mutation error:', error);
+      // Error will be handled by onError callback if provided
       throw error;
     }
   }, [mutateAsync]);

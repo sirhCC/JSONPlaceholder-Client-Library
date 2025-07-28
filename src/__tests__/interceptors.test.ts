@@ -6,7 +6,9 @@ describe('JsonPlaceholderClient Interceptors', () => {
   let mock: MockAdapter;
 
   beforeEach(() => {
-    client = new JsonPlaceholderClient();
+    client = new JsonPlaceholderClient(undefined, {
+      loggerConfig: { level: 'info' }
+    });
     mock = new MockAdapter(client.client);
   });
 
@@ -163,11 +165,16 @@ describe('JsonPlaceholderClient Interceptors', () => {
     it('should log requests and responses', async () => {
       mock.onGet('/posts/1').reply(200, { id: 1, title: 'Test', body: 'Body', userId: 1 });
 
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      // Create client with debug logging enabled
+      const testClient = new JsonPlaceholderClient(undefined, {
+        loggerConfig: { level: 'debug' }
+      });
 
-      client.addLoggingInterceptor(true, true);
+      const consoleSpy = jest.spyOn(console, 'debug').mockImplementation();
 
-      await client.getPost(1);
+      testClient.addLoggingInterceptor(true, true);
+
+      await testClient.getPost(1);
 
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining('🚀 Request: GET'),
@@ -184,11 +191,16 @@ describe('JsonPlaceholderClient Interceptors', () => {
     it('should log only requests when specified', async () => {
       mock.onGet('/posts/1').reply(200, { id: 1, title: 'Test', body: 'Body', userId: 1 });
 
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      // Create client with debug logging enabled
+      const testClient = new JsonPlaceholderClient(undefined, {
+        loggerConfig: { level: 'debug' }
+      });
 
-      client.addLoggingInterceptor(true, false);
+      const consoleSpy = jest.spyOn(console, 'debug').mockImplementation();
 
-      await client.getPost(1);
+      testClient.addLoggingInterceptor(true, false);
+
+      await testClient.getPost(1);
 
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining('🚀 Request: GET'),
@@ -214,7 +226,7 @@ describe('JsonPlaceholderClient Interceptors', () => {
         .onGet('/posts/1')
         .reply(200, { id: 1, title: 'Test', body: 'Body', userId: 1 });
 
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleSpy = jest.spyOn(console, 'info').mockImplementation();
 
       client.addRetryInterceptor({ attempts: 3, delay: 10 });
 
@@ -234,7 +246,7 @@ describe('JsonPlaceholderClient Interceptors', () => {
         .onGet('/posts/1')
         .reply(200, { id: 1, title: 'Test', body: 'Body', userId: 1 });
 
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleSpy = jest.spyOn(console, 'info').mockImplementation();
 
       client.addRetryInterceptor({ 
         attempts: 2, 

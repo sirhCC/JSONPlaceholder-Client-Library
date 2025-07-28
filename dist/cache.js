@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CacheManager = exports.SessionStorageCacheStorage = exports.LocalStorageCacheStorage = exports.MemoryCacheStorage = void 0;
+const logger_1 = require("./logger");
 /**
  * Memory-based cache storage implementation
  */
@@ -61,9 +62,10 @@ exports.MemoryCacheStorage = MemoryCacheStorage;
  * Browser localStorage-based cache storage implementation
  */
 class LocalStorageCacheStorage {
-    constructor(keyPrefix = 'jsonph_cache_', maxSize = 100) {
+    constructor(keyPrefix = 'jsonph_cache_', maxSize = 100, logger) {
         this.keyPrefix = keyPrefix;
         this.maxSize = maxSize;
+        this.logger = logger || (0, logger_1.createLogger)({ level: 'silent' });
     }
     async get(key) {
         if (typeof window === 'undefined' || !window.localStorage) {
@@ -86,7 +88,7 @@ class LocalStorageCacheStorage {
             return entry;
         }
         catch (error) {
-            console.warn('Failed to read from localStorage cache:', error);
+            this.logger.warn('Failed to read from localStorage cache:', error);
             return null;
         }
     }
@@ -103,7 +105,7 @@ class LocalStorageCacheStorage {
             localStorage.setItem(this.keyPrefix + key, JSON.stringify(entry));
         }
         catch (error) {
-            console.warn('Failed to write to localStorage cache:', error);
+            this.logger.warn('Failed to write to localStorage cache:', error);
         }
     }
     async delete(key) {
@@ -186,7 +188,7 @@ class SessionStorageCacheStorage extends LocalStorageCacheStorage {
             return entry;
         }
         catch (error) {
-            console.warn('Failed to read from sessionStorage cache:', error);
+            this.logger.warn('Failed to read from sessionStorage cache:', error);
             return null;
         }
     }
@@ -203,7 +205,7 @@ class SessionStorageCacheStorage extends LocalStorageCacheStorage {
             sessionStorage.setItem(this.keyPrefix + key, JSON.stringify(entry));
         }
         catch (error) {
-            console.warn('Failed to write to sessionStorage cache:', error);
+            this.logger.warn('Failed to write to sessionStorage cache:', error);
         }
     }
     async delete(key) {
@@ -265,10 +267,11 @@ exports.SessionStorageCacheStorage = SessionStorageCacheStorage;
  * Main cache manager class
  */
 class CacheManager {
-    constructor(config = {}) {
+    constructor(config = {}, logger) {
         this.eventListeners = [];
         this.backgroundRefreshPromises = new Map();
         this.pendingRequests = new Map();
+        this.logger = logger || (0, logger_1.createLogger)({ level: 'silent' });
         this.config = {
             enabled: true,
             defaultTTL: 5 * 60 * 1000, // 5 minutes
@@ -296,9 +299,9 @@ class CacheManager {
     createStorage() {
         switch (this.config.storage) {
             case 'localStorage':
-                return new LocalStorageCacheStorage(this.config.keyPrefix, this.config.maxSize);
+                return new LocalStorageCacheStorage(this.config.keyPrefix, this.config.maxSize, this.logger);
             case 'sessionStorage':
-                return new SessionStorageCacheStorage(this.config.keyPrefix, this.config.maxSize);
+                return new SessionStorageCacheStorage(this.config.keyPrefix, this.config.maxSize, this.logger);
             default:
                 return new MemoryCacheStorage(this.config.maxSize);
         }
@@ -369,7 +372,7 @@ class CacheManager {
         }
         catch (error) {
             // Silently handle storage errors - cache failure shouldn't break the application
-            console.warn('Cache storage error:', error);
+            this.logger.warn('Cache storage error:', error);
             // Emit a set event with error metadata to indicate cache set failure
             this.emitEvent('set', key, {
                 error: error instanceof Error ? error.message : 'Unknown error',
@@ -492,7 +495,7 @@ class CacheManager {
                 listener(event);
             }
             catch (error) {
-                console.warn('Cache event listener error:', error);
+                this.logger.warn('Cache event listener error:', error);
             }
         });
     }
@@ -511,7 +514,7 @@ class CacheManager {
                 await this.set(key, freshData);
             }
             catch (error) {
-                console.warn('Background refresh failed for key:', key, error);
+                this.logger.warn('Background refresh failed for key:', key, error);
             }
             finally {
                 this.backgroundRefreshPromises.delete(key);
@@ -576,7 +579,7 @@ class CacheManager {
             }
             catch (error) {
                 // Cache set failure should not prevent returning the fresh data
-                console.warn('Cache set failed:', error);
+                this.logger.warn('Cache set failed:', error);
             }
             return freshData;
         }).finally(() => {

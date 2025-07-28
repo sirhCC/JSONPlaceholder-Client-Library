@@ -1,12 +1,17 @@
 import { AxiosInstance } from 'axios';
-import { Post, Comment, User, PostSearchOptions, CommentSearchOptions, UserSearchOptions, PaginatedResponse, RequestInterceptor, ResponseInterceptor, ResponseErrorInterceptor, InterceptorOptions, CacheConfig, CacheOptions, CacheStats, CacheEvent } from './types';
+import { Post, Comment, User, PostSearchOptions, CommentSearchOptions, UserSearchOptions, PaginatedResponse, RequestInterceptor, ResponseInterceptor, ResponseErrorInterceptor, InterceptorOptions, CacheConfig, CacheOptions, CacheStats, CacheEvent, ILogger, LoggerConfig } from './types';
+export interface ClientConfig {
+    cacheConfig?: Partial<CacheConfig>;
+    loggerConfig?: Partial<LoggerConfig> | ILogger;
+}
 export declare class JsonPlaceholderClient {
     client: AxiosInstance;
     private requestInterceptors;
     private responseInterceptors;
     private responseErrorInterceptors;
     private cacheManager;
-    constructor(baseURL?: string, cacheConfig?: Partial<CacheConfig>);
+    private logger;
+    constructor(baseURL?: string, config?: ClientConfig);
     private setupDefaultInterceptors;
     addRequestInterceptor(interceptor: RequestInterceptor): number;
     addResponseInterceptor(onFulfilled?: ResponseInterceptor, onRejected?: ResponseErrorInterceptor): number;
