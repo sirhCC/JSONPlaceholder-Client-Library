@@ -535,15 +535,9 @@ class CacheManager {
     async getWithSWR(key, fetchFn, options = {}) {
         if (options.forceRefresh) {
             // Force refresh - bypass cache completely and fetch fresh data
-            try {
-                const freshData = await fetchFn();
-                await this.set(key, freshData, options);
-                return freshData;
-            }
-            catch (error) {
-                // If forced refresh fails, re-throw the error
-                throw error;
-            }
+            const freshData = await fetchFn();
+            await this.set(key, freshData, options);
+            return freshData;
         }
         const cachedData = await this.get(key);
         if (cachedData) {
