@@ -23,11 +23,19 @@ import {
   CacheOptions,
   CacheStats,
   CacheKey,
-  CacheEvent
+  CacheEvent,
+  ILogger,
+  LoggerConfig
 } from './types';
 import { CacheManager } from './cache';
+import { createLogger } from './logger';
 
 const defaultApiUrl = 'https://jsonplaceholder.typicode.com';
+
+export interface ClientConfig {
+  cacheConfig?: Partial<CacheConfig>;
+  loggerConfig?: Partial<LoggerConfig> | ILogger;
+}
 
 export class JsonPlaceholderClient {
   client: AxiosInstance;
@@ -35,8 +43,9 @@ export class JsonPlaceholderClient {
   private responseInterceptors: ResponseInterceptor[] = [];
   private responseErrorInterceptors: ResponseErrorInterceptor[] = [];
   private cacheManager: CacheManager;
+  private logger: ILogger;
 
-  constructor(baseURL: string = defaultApiUrl, cacheConfig?: Partial<CacheConfig>) {
+  constructor(baseURL: string = defaultApiUrl, config?: ClientConfig) {
     this.client = axios.create({
       baseURL,
       timeout: 10000,
@@ -45,7 +54,8 @@ export class JsonPlaceholderClient {
       },
     });
 
-    this.cacheManager = new CacheManager(cacheConfig);
+    this.logger = createLogger(config?.loggerConfig);
+    this.cacheManager = new CacheManager(config?.cacheConfig, this.logger);
     this.setupDefaultInterceptors();
   }
 
