@@ -1,5 +1,7 @@
 // Test the built package
-const { JsonPlaceholderClient } = require('./dist/index.js');
+const path = require('path');
+const rootDir = path.join(__dirname, '..', '..');
+const { JsonPlaceholderClient } = require(path.join(rootDir, 'dist', 'index.js'));
 
 console.log('Testing CommonJS build...');
 const client = new JsonPlaceholderClient();

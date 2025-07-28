@@ -1,10 +1,13 @@
 // Test the React package exports
 console.log('🧪 Testing React Package Exports...\n');
 
+const path = require('path');
+const rootDir = path.join(__dirname, '..', '..');
+
 try {
     // Test CommonJS import
     console.log('1. Testing CommonJS import...');
-    const reactHooks = require('./packages/react/dist/index.js');
+    const reactHooks = require(path.join(rootDir, 'packages', 'react', 'dist', 'index.js'));
     
     console.log('   ✅ Available exports:');
     Object.keys(reactHooks).forEach(key => {

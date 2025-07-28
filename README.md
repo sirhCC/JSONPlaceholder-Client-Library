@@ -1021,6 +1021,30 @@ npm test
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
+## 📁 Project Structure
+
+```text
+jsonplaceholder-client-lib/
+├── src/                    # Core library source code
+├── packages/               # Package workspace
+│   └── react/             # React hooks package
+├── tests/                 # Test files and demos
+│   ├── integration/       # Integration tests
+│   └── demos/            # Demo applications
+├── docs/                  # Documentation files
+├── scripts/              # Build and utility scripts
+├── dist/                 # Built library files
+└── README.md             # Main documentation
+```
+
+### Key Directories
+
+- **`src/`** - Core TypeScript library source code
+- **`packages/react/`** - React hooks package with its own build system
+- **`tests/integration/`** - Package validation and integration tests
+- **`tests/demos/`** - HTML demos and example applications
+- **`docs/`** - Additional documentation and guides
+
 ## License
 
 This project is licensed under the MIT License.
