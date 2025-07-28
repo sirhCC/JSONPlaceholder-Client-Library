@@ -10,6 +10,7 @@ const cache_1 = require("./cache");
 const logger_1 = require("./logger");
 const performance_1 = require("./performance");
 const error_recovery_1 = require("./error-recovery");
+const developer_tools_1 = require("./developer-tools");
 const defaultApiUrl = 'https://jsonplaceholder.typicode.com';
 class JsonPlaceholderClient {
     constructor(baseURL = defaultApiUrl, config) {
@@ -29,8 +30,10 @@ class JsonPlaceholderClient {
         this.performanceDashboard = new performance_1.PerformanceDashboard(this.performanceMonitor);
         this.errorRecoveryManager = new error_recovery_1.ErrorRecoveryManager(config?.errorRecoveryConfig);
         this.errorRecoveryDashboard = new error_recovery_1.ErrorRecoveryDashboard(this.errorRecoveryManager);
+        this.developerTools = new developer_tools_1.DeveloperTools({ enabled: false, ...config?.devModeConfig }, this.logger);
         this.setupDefaultInterceptors();
         this.setupPerformanceTracking();
+        this.setupDeveloperInstrumentation();
     }
     setupDefaultInterceptors() {
         // Request interceptor to apply all custom request interceptors
@@ -123,6 +126,52 @@ class JsonPlaceholderClient {
                     latestMetric.cacheHit = event.type === 'hit';
                 }
             }
+        });
+    }
+    setupDeveloperInstrumentation() {
+        // Add developer tools request inspection
+        this.addRequestInterceptor((config) => {
+            const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            config.requestId = requestId;
+            this.developerTools.inspectRequest({
+                id: requestId,
+                method: config.method?.toUpperCase() || 'GET',
+                url: config.url || '',
+                headers: config.headers || {},
+                body: config.data,
+                timestamp: Date.now(),
+                cacheKey: this.cacheManager.generateKey({
+                    method: config.method?.toUpperCase() || 'GET',
+                    url: config.url || '',
+                    params: config.params,
+                    data: config.data
+                }),
+                expectedResponseTime: 500 // Default estimate
+            });
+            return config;
+        });
+        // Add developer tools response inspection
+        this.addResponseInterceptor((response) => {
+            const config = response.config;
+            const requestId = config.requestId || 'unknown';
+            const startTime = config.startTime || Date.now();
+            this.developerTools.inspectResponse({
+                requestId,
+                status: response.status,
+                statusText: response.statusText,
+                headers: response.headers,
+                body: response.data,
+                responseTime: Date.now() - startTime,
+                cacheHit: false, // Will be updated by cache events
+                timestamp: Date.now(),
+                size: this.calculateResponseSize(response.data)
+            });
+            return response;
+        });
+        // Network simulation for developer mode
+        this.addRequestInterceptor(async (config) => {
+            await this.developerTools.simulateNetworkDelay();
+            return config;
         });
     }
     calculateResponseSize(data) {
@@ -727,6 +776,76 @@ class JsonPlaceholderClient {
      */
     getErrorRecoveryInsights() {
         return this.errorRecoveryDashboard.getInsights();
+    }
+    // Developer Experience Methods
+    /**
+     * Enable or disable developer mode
+     */
+    setDeveloperMode(enabled) {
+        this.developerTools.updateConfig({ enabled });
+    }
+    /**
+     * Get developer tools debug report
+     */
+    getDeveloperDebugReport() {
+        return this.developerTools.generateDebugReport();
+    }
+    /**
+     * Print developer debug report to console
+     */
+    printDeveloperDebugReport() {
+        this.developerTools.printDebugReport();
+    }
+    /**
+     * Get code examples for common operations
+     */
+    getCodeExamples() {
+        return this.developerTools.getCodeExamples();
+    }
+    /**
+     * Generate a code example for a specific operation
+     */
+    generateCodeExample(operation) {
+        return this.developerTools.generateCodeExample(operation);
+    }
+    /**
+     * Get request inspections (dev mode only)
+     */
+    getRequestInspections() {
+        return this.developerTools.getRequestInspections();
+    }
+    /**
+     * Get response inspections (dev mode only)
+     */
+    getResponseInspections() {
+        return this.developerTools.getResponseInspections();
+    }
+    /**
+     * Export all debug data
+     */
+    exportDebugData() {
+        return this.developerTools.exportDebugData();
+    }
+    /**
+     * Clear all debug data
+     */
+    clearDebugData() {
+        this.developerTools.clearDebugData();
+    }
+    /**
+     * Simulate network conditions for testing (dev mode only)
+     */
+    simulateNetworkConditions(config) {
+        this.developerTools.simulateNetworkConditions({
+            enabled: true,
+            ...config
+        });
+    }
+    /**
+     * Get enhanced error with developer tips
+     */
+    createDeveloperFriendlyError(message, code, tips = [], examples = []) {
+        return new developer_tools_1.DeveloperFriendlyError(message, code, tips, examples);
     }
 }
 exports.JsonPlaceholderClient = JsonPlaceholderClient;
