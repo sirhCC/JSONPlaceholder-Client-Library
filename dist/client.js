@@ -9,6 +9,7 @@ const types_1 = require("./types");
 const cache_1 = require("./cache");
 const logger_1 = require("./logger");
 const performance_1 = require("./performance");
+const error_recovery_1 = require("./error-recovery");
 const defaultApiUrl = 'https://jsonplaceholder.typicode.com';
 class JsonPlaceholderClient {
     constructor(baseURL = defaultApiUrl, config) {
@@ -26,6 +27,8 @@ class JsonPlaceholderClient {
         this.cacheManager = new cache_1.CacheManager(config?.cacheConfig, this.logger);
         this.performanceMonitor = new performance_1.PerformanceMonitor(config?.performanceConfig);
         this.performanceDashboard = new performance_1.PerformanceDashboard(this.performanceMonitor);
+        this.errorRecoveryManager = new error_recovery_1.ErrorRecoveryManager(config?.errorRecoveryConfig);
+        this.errorRecoveryDashboard = new error_recovery_1.ErrorRecoveryDashboard(this.errorRecoveryManager);
         this.setupDefaultInterceptors();
         this.setupPerformanceTracking();
     }
@@ -448,16 +451,34 @@ class JsonPlaceholderClient {
         }
         return undefined;
     }
+    /**
+     * Wrapper method that adds error recovery to HTTP requests
+     */
+    async executeWithErrorRecovery(operation, fallbackOperations = []) {
+        return this.errorRecoveryManager.execute(operation, fallbackOperations);
+    }
     async getPosts(cacheOptions = {}) {
         try {
-            return await this.handleCachedRequest({
+            return await this.executeWithErrorRecovery(() => this.handleCachedRequest({
                 method: 'GET',
                 url: '/posts',
                 params: {}
             }, async () => {
                 const response = await this.client.get('/posts');
                 return response.data;
-            }, cacheOptions);
+            }, cacheOptions), 
+            // Fallback: try to get stale cache data
+            [
+                async () => {
+                    const key = this.cacheManager.generateKey({ method: 'GET', url: '/posts', params: {} });
+                    const cachedData = await this.cacheManager.get(key);
+                    if (cachedData) {
+                        this.logger.warn('Using stale cache data as fallback for getPosts');
+                        return cachedData;
+                    }
+                    throw new Error('No fallback data available');
+                }
+            ]);
         }
         catch (error) {
             this.handleError(error, 'posts');
@@ -634,6 +655,78 @@ class JsonPlaceholderClient {
             this.handleError(error, `post/${id}`);
         }
     }
+    // Error Recovery Management Methods
+    /**
+     * Get circuit breaker statistics
+     */
+    getCircuitBreakerStats() {
+        return this.errorRecoveryManager.getCircuitBreakerStats();
+    }
+    /**
+     * Add event listener for error recovery events
+     */
+    addErrorRecoveryEventListener(listener) {
+        this.errorRecoveryManager.addEventListener(listener);
+    }
+    /**
+     * Remove event listener for error recovery events
+     */
+    removeErrorRecoveryEventListener(listener) {
+        this.errorRecoveryManager.removeEventListener(listener);
+    }
+    /**
+     * Manually open the circuit breaker
+     */
+    forceCircuitOpen() {
+        this.errorRecoveryManager.forceCircuitOpen();
+    }
+    /**
+     * Manually close the circuit breaker
+     */
+    forceCircuitClose() {
+        this.errorRecoveryManager.forceCircuitClose();
+    }
+    /**
+     * Reset error recovery state
+     */
+    resetErrorRecovery() {
+        this.errorRecoveryManager.reset();
+    }
+    /**
+     * Get error recovery configuration
+     */
+    getErrorRecoveryConfig() {
+        return this.errorRecoveryManager.getConfig();
+    }
+    /**
+     * Update error recovery configuration
+     */
+    updateErrorRecoveryConfig(config) {
+        this.errorRecoveryManager.updateConfig(config);
+    }
+    /**
+     * Print error recovery dashboard report
+     */
+    printErrorRecoveryReport() {
+        this.errorRecoveryDashboard.printReport();
+    }
+    /**
+     * Print error recovery insights
+     */
+    printErrorRecoveryInsights() {
+        this.errorRecoveryDashboard.printInsights();
+    }
+    /**
+     * Get error recovery dashboard report as string
+     */
+    getErrorRecoveryReport() {
+        return this.errorRecoveryDashboard.getReport();
+    }
+    /**
+     * Get error recovery insights as array
+     */
+    getErrorRecoveryInsights() {
+        return this.errorRecoveryDashboard.getInsights();
+    }
 }
 exports.JsonPlaceholderClient = JsonPlaceholderClient;
-//# sourceMappingURL=client.js.map
