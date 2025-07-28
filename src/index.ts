@@ -88,3 +88,18 @@ export {
   RetryManager,
   FallbackManager
 } from './error-recovery';
+
+// Developer tools - optional feature
+export type {
+  DevModeConfig,
+  NetworkSimulationConfig,
+  RequestInspection,
+  ResponseInspection,
+  PerformanceWarning,
+  CodeExample
+} from './developer-tools';
+
+export {
+  DeveloperTools,
+  DeveloperFriendlyError
+} from './developer-tools';
