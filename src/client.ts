@@ -317,7 +317,9 @@ export class JsonPlaceholderClient {
     return this.addResponseInterceptor(
       undefined,
       async (error) => {
-        const config = error.config;
+        const axiosError = error as AxiosError;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const config = axiosError.config as any;
         
         // Don't retry if no config or already exceeded max attempts
         if (!config || (config.__retryCount || 0) >= (options.attempts || 3)) {
