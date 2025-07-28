@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosResponse, AxiosResponseHeaders } from 'axios';
 import { 
   Post, 
   Comment, 
@@ -22,7 +22,8 @@ import {
   CacheConfig,
   CacheOptions,
   CacheStats,
-  CacheKey
+  CacheKey,
+  CacheEvent
 } from './types';
 import { CacheManager } from './cache';
 
@@ -239,14 +240,14 @@ export class JsonPlaceholderClient {
   /**
    * Add cache event listener
    */
-  addCacheEventListener(listener: (event: any) => void): void {
+  addCacheEventListener(listener: (event: CacheEvent) => void): void {
     this.cacheManager.addEventListener(listener);
   }
 
   /**
    * Remove cache event listener
    */
-  removeCacheEventListener(listener: (event: any) => void): void {
+  removeCacheEventListener(listener: (event: CacheEvent) => void): void {
     this.cacheManager.removeEventListener(listener);
   }
 
@@ -285,19 +286,26 @@ export class JsonPlaceholderClient {
   addLoggingInterceptor(logRequests = true, logResponses = true): number {
     if (logRequests) {
       this.addRequestInterceptor((config) => {
-        console.log(`🚀 Request: ${config.method?.toUpperCase()} ${config.url}`, {
-          headers: config.headers,
-          data: config.data
-        });
+        // Only log in development mode
+        if (process.env.NODE_ENV !== 'production') {
+          // eslint-disable-next-line no-console
+          console.log(`🚀 Request: ${config.method?.toUpperCase()} ${config.url}`, {
+            headers: config.headers,
+            data: config.data
+          });
+        }
         return config;
       });
     }
 
     if (logResponses) {
       return this.addResponseInterceptor((response) => {
-        console.log(`✅ Response: ${response.status} ${response.config.url}`, {
-          data: response.data
-        });
+        if (process.env.NODE_ENV !== 'production') {
+          // eslint-disable-next-line no-console
+          console.log(`✅ Response: ${response.status} ${response.config.url}`, {
+            data: response.data
+          });
+        }
         return response;
       });
     }
@@ -322,7 +330,10 @@ export class JsonPlaceholderClient {
           ? (options.delay || 1000) * Math.pow(2, config.__retryCount - 1)
           : (options.delay || 1000);
 
-        console.log(`⚠️ Retrying request (${config.__retryCount}/${options.attempts}) after ${delay}ms...`);
+        if (process.env.NODE_ENV !== 'production') {
+          // eslint-disable-next-line no-console
+          console.log(`⚠️ Retrying request (${config.__retryCount}/${options.attempts}) after ${delay}ms...`);
+        }
         
         await new Promise(resolve => setTimeout(resolve, delay));
         
@@ -331,7 +342,7 @@ export class JsonPlaceholderClient {
     );
   }
 
-  private buildQueryString(params: Record<string, any>): string {
+  private buildQueryString(params: PostSearchOptions | CommentSearchOptions | UserSearchOptions): string {
     const queryParams = new URLSearchParams();
     
     Object.entries(params).forEach(([key, value]) => {
@@ -343,8 +354,8 @@ export class JsonPlaceholderClient {
     return queryParams.toString();
   }
 
-  private parsePaginationHeaders<T>(headers: any, data: T[], options: PaginationOptions): PaginatedResponse<T> {
-    const total = parseInt(headers['x-total-count'] || '0', 10);
+  private parsePaginationHeaders<T>(headers: Record<string, unknown>, data: T[], options: PaginationOptions): PaginatedResponse<T> {
+    const total = parseInt(String(headers['x-total-count'] || '0'), 10);
     const page = options._page || 1;
     const limit = options._limit || 10;
     
@@ -372,24 +383,26 @@ export class JsonPlaceholderClient {
         }
         throw new ApiClientError('Resource not found', 404, responseData);
       
-      case 400:
+      case 400: {
         const validationErrors = this.extractValidationErrors(responseData);
         throw new ValidationError(
-          (responseData as any)?.message || 'Validation failed',
+          (responseData as { message?: string })?.message || 'Validation failed',
           validationErrors,
           responseData
         );
+      }
       
-      case 429:
+      case 429: {
         const retryAfter = error.response?.headers?.['retry-after'];
         throw new RateLimitError(retryAfter ? parseInt(retryAfter) : undefined, responseData);
+      }
       
       case 500:
       case 502:
       case 503:
       case 504:
         throw new ServerError(
-          (responseData as any)?.message || 'Server error occurred',
+          (responseData as { message?: string })?.message || 'Server error occurred',
           responseData
         );
       
@@ -407,12 +420,15 @@ export class JsonPlaceholderClient {
     return match ? parseInt(match[1]) : 0;
   }
 
-  private extractValidationErrors(responseData: any): string[] | undefined {
-    if (responseData?.errors && Array.isArray(responseData.errors)) {
-      return responseData.errors;
-    }
-    if (responseData?.message && typeof responseData.message === 'string') {
-      return [responseData.message];
+  private extractValidationErrors(responseData: unknown): string[] | undefined {
+    if (typeof responseData === 'object' && responseData !== null) {
+      const data = responseData as Record<string, unknown>;
+      if (data.errors && Array.isArray(data.errors)) {
+        return data.errors;
+      }
+      if (data.message && typeof data.message === 'string') {
+        return [data.message];
+      }
     }
     return undefined;
   }

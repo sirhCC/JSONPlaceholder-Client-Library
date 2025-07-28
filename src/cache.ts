@@ -629,14 +629,9 @@ export class CacheManager {
   ): Promise<T> {
     if (options.forceRefresh) {
       // Force refresh - bypass cache completely and fetch fresh data
-      try {
-        const freshData = await fetchFn();
-        await this.set(key, freshData, options);
-        return freshData;
-      } catch (error) {
-        // If forced refresh fails, re-throw the error
-        throw error;
-      }
+      const freshData = await fetchFn();
+      await this.set(key, freshData, options);
+      return freshData;
     }
 
     const cachedData = await this.get<T>(key);
