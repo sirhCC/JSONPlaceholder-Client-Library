@@ -36,6 +36,13 @@ npm install jsonplaceholder-client-lib
 npm install @jsonplaceholder-client-lib/react jsonplaceholder-client-lib
 ```
 
+## 📚 Documentation
+
+- **[API Reference](./docs/API_REFERENCE.md)** - Complete API documentation with examples
+- **[Examples](./examples/README.md)** - Practical usage examples and tutorials
+- **[React Hooks Guide](./packages/react/README.md)** - React hooks documentation
+- **[Publishing Guide](./docs/PUBLISHING.md)** - NPM publishing instructions
+
 ## Quick Start
 
 ### TypeScript/JavaScript
