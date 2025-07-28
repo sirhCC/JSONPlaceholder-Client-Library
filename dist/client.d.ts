@@ -1,5 +1,5 @@
 import { AxiosInstance } from 'axios';
-import { Post, Comment, User, PostSearchOptions, CommentSearchOptions, UserSearchOptions, PaginatedResponse, RequestInterceptor, ResponseInterceptor, ResponseErrorInterceptor, InterceptorOptions, CacheConfig, CacheOptions, CacheStats } from './types';
+import { Post, Comment, User, PostSearchOptions, CommentSearchOptions, UserSearchOptions, PaginatedResponse, RequestInterceptor, ResponseInterceptor, ResponseErrorInterceptor, InterceptorOptions, CacheConfig, CacheOptions, CacheStats, CacheEvent } from './types';
 export declare class JsonPlaceholderClient {
     client: AxiosInstance;
     private requestInterceptors;
@@ -52,11 +52,11 @@ export declare class JsonPlaceholderClient {
     /**
      * Add cache event listener
      */
-    addCacheEventListener(listener: (event: any) => void): void;
+    addCacheEventListener(listener: (event: CacheEvent) => void): void;
     /**
      * Remove cache event listener
      */
-    removeCacheEventListener(listener: (event: any) => void): void;
+    removeCacheEventListener(listener: (event: CacheEvent) => void): void;
     /**
      * Internal method to handle cached requests
      */
