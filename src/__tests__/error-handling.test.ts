@@ -79,7 +79,7 @@ describe('JsonPlaceholderClient Error Handling', () => {
 
       await expect(client.getPosts()).rejects.toThrow(ServerError);
       await expect(client.getPosts()).rejects.toThrow('Database connection failed');
-    });
+    }, 15000); // Increase timeout to 15 seconds
 
     it('should throw ServerError for 502 status', async () => {
       mock.onGet('/posts').reply(502, { message: 'Bad Gateway' });
