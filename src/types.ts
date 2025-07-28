@@ -70,11 +70,11 @@ export interface RequestConfig {
   method: string;
   url: string;
   headers: Record<string, string>;
-  data?: any;
-  params?: Record<string, any>;
+  data?: unknown;
+  params?: Record<string, unknown>;
 }
 
-export interface ResponseData<T = any> {
+export interface ResponseData<T = unknown> {
   data: T;
   status: number;
   statusText: string;
@@ -84,7 +84,7 @@ export interface ResponseData<T = any> {
 
 export type RequestInterceptor = (config: RequestConfig) => RequestConfig | Promise<RequestConfig>;
 export type ResponseInterceptor = (response: ResponseData) => ResponseData | Promise<ResponseData>;
-export type ResponseErrorInterceptor = (error: any) => any | Promise<any>;
+export type ResponseErrorInterceptor = (error: Error) => Error | Promise<Error>;
 
 export interface InterceptorOptions {
   retry?: {
@@ -106,7 +106,7 @@ export interface CacheConfig {
   refreshThreshold: number; // Percentage of TTL when background refresh triggers (0-1)
 }
 
-export interface CacheEntry<T = any> {
+export interface CacheEntry<T = unknown> {
   data: T;
   timestamp: number;
   ttl: number;
@@ -139,8 +139,8 @@ export interface CacheOptions {
 export interface CacheKey {
   method: string;
   url: string;
-  params?: Record<string, any>;
-  data?: any;
+  params?: Record<string, unknown>;
+  data?: unknown;
 }
 
 // Cache Storage Interface
@@ -160,7 +160,7 @@ export interface CacheEvent {
   type: CacheEventType;
   key: string;
   timestamp: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export type CacheEventListener = (event: CacheEvent) => void;
@@ -168,9 +168,9 @@ export type CacheEventListener = (event: CacheEvent) => void;
 // Custom Error Classes
 export class ApiClientError extends Error {
     public readonly status: number;
-    public readonly response?: any;
+    public readonly response?: unknown;
 
-    constructor(message: string, status: number, response?: any) {
+    constructor(message: string, status: number, response?: unknown) {
         super(message);
         this.name = this.constructor.name;
         this.status = status;
@@ -184,7 +184,7 @@ export class ApiClientError extends Error {
 }
 
 export class PostNotFoundError extends ApiClientError {
-    constructor(postId: number, response?: any) {
+    constructor(postId: number, response?: unknown) {
         super(`Post with ID ${postId} not found`, 404, response);
     }
 }
@@ -192,14 +192,14 @@ export class PostNotFoundError extends ApiClientError {
 export class ValidationError extends ApiClientError {
     public readonly validationErrors?: string[];
 
-    constructor(message: string, validationErrors?: string[], response?: any) {
+    constructor(message: string, validationErrors?: string[], response?: unknown) {
         super(message, 400, response);
         this.validationErrors = validationErrors;
     }
 }
 
 export class ServerError extends ApiClientError {
-    constructor(message: string = 'Internal server error', response?: any) {
+    constructor(message: string = 'Internal server error', response?: unknown) {
         super(message, 500, response);
     }
 }
@@ -207,7 +207,7 @@ export class ServerError extends ApiClientError {
 export class RateLimitError extends ApiClientError {
     public readonly retryAfter?: number;
 
-    constructor(retryAfter?: number, response?: any) {
+    constructor(retryAfter?: number, response?: unknown) {
         super('Rate limit exceeded. Please try again later.', 429, response);
         this.retryAfter = retryAfter;
     }
