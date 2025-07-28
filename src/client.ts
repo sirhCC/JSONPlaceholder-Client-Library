@@ -44,6 +44,14 @@ import {
   ErrorRecoveryEventListener,
   CircuitBreakerStats
 } from './error-recovery';
+import {
+  DeveloperTools,
+  DevModeConfig,
+  DeveloperFriendlyError,
+  RequestInspection,
+  ResponseInspection,
+  CodeExample
+} from './developer-tools';
 
 const defaultApiUrl = 'https://jsonplaceholder.typicode.com';
 
@@ -52,6 +60,7 @@ export interface ClientConfig {
   loggerConfig?: Partial<LoggerConfig> | ILogger;
   performanceConfig?: Partial<PerformanceConfig>;
   errorRecoveryConfig?: Partial<ErrorRecoveryConfig>;
+  devModeConfig?: Partial<DevModeConfig>;
 }
 
 export class JsonPlaceholderClient {
@@ -65,6 +74,7 @@ export class JsonPlaceholderClient {
   private performanceDashboard: PerformanceDashboard;
   private errorRecoveryManager: ErrorRecoveryManager;
   private errorRecoveryDashboard: ErrorRecoveryDashboard;
+  private developerTools: DeveloperTools;
 
   constructor(baseURL: string = defaultApiUrl, config?: ClientConfig) {
     this.client = axios.create({
@@ -81,8 +91,10 @@ export class JsonPlaceholderClient {
     this.performanceDashboard = new PerformanceDashboard(this.performanceMonitor);
     this.errorRecoveryManager = new ErrorRecoveryManager(config?.errorRecoveryConfig);
     this.errorRecoveryDashboard = new ErrorRecoveryDashboard(this.errorRecoveryManager);
+    this.developerTools = new DeveloperTools({ enabled: false, ...config?.devModeConfig }, this.logger);
     this.setupDefaultInterceptors();
     this.setupPerformanceTracking();
+    this.setupDeveloperInstrumentation();
   }
 
   private setupDefaultInterceptors(): void {
@@ -194,6 +206,59 @@ export class JsonPlaceholderClient {
           latestMetric.cacheHit = event.type === 'hit';
         }
       }
+    });
+  }
+
+  private setupDeveloperInstrumentation(): void {
+    // Add developer tools request inspection
+    this.addRequestInterceptor((config) => {
+      const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      (config as RequestConfig & { requestId?: string }).requestId = requestId;
+      
+      this.developerTools.inspectRequest({
+        id: requestId,
+        method: config.method?.toUpperCase() || 'GET',
+        url: config.url || '',
+        headers: config.headers as Record<string, string> || {},
+        body: config.data,
+        timestamp: Date.now(),
+        cacheKey: this.cacheManager.generateKey({
+          method: config.method?.toUpperCase() || 'GET',
+          url: config.url || '',
+          params: config.params,
+          data: config.data
+        }),
+        expectedResponseTime: 500 // Default estimate
+      });
+      
+      return config;
+    });
+
+    // Add developer tools response inspection
+    this.addResponseInterceptor((response) => {
+      const config = response.config as RequestConfig & { requestId?: string; startTime?: number };
+      const requestId = config.requestId || 'unknown';
+      const startTime = config.startTime || Date.now();
+      
+      this.developerTools.inspectResponse({
+        requestId,
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers as Record<string, string>,
+        body: response.data,
+        responseTime: Date.now() - startTime,
+        cacheHit: false, // Will be updated by cache events
+        timestamp: Date.now(),
+        size: this.calculateResponseSize(response.data)
+      });
+      
+      return response;
+    });
+
+    // Network simulation for developer mode
+    this.addRequestInterceptor(async (config) => {
+      await this.developerTools.simulateNetworkDelay();
+      return config;
     });
   }
 
@@ -934,5 +999,92 @@ export class JsonPlaceholderClient {
    */
   getErrorRecoveryInsights(): string[] {
     return this.errorRecoveryDashboard.getInsights();
+  }
+
+  // Developer Experience Methods
+
+  /**
+   * Enable or disable developer mode
+   */
+  setDeveloperMode(enabled: boolean): void {
+    this.developerTools.updateConfig({ enabled });
+  }
+
+  /**
+   * Get developer tools debug report
+   */
+  getDeveloperDebugReport(): string {
+    return this.developerTools.generateDebugReport();
+  }
+
+  /**
+   * Print developer debug report to console
+   */
+  printDeveloperDebugReport(): void {
+    this.developerTools.printDebugReport();
+  }
+
+  /**
+   * Get code examples for common operations
+   */
+  getCodeExamples(): CodeExample[] {
+    return this.developerTools.getCodeExamples();
+  }
+
+  /**
+   * Generate a code example for a specific operation
+   */
+  generateCodeExample(operation: string): CodeExample | null {
+    return this.developerTools.generateCodeExample(operation);
+  }
+
+  /**
+   * Get request inspections (dev mode only)
+   */
+  getRequestInspections(): RequestInspection[] {
+    return this.developerTools.getRequestInspections();
+  }
+
+  /**
+   * Get response inspections (dev mode only)
+   */
+  getResponseInspections(): ResponseInspection[] {
+    return this.developerTools.getResponseInspections();
+  }
+
+  /**
+   * Export all debug data
+   */
+  exportDebugData(): Record<string, unknown> {
+    return this.developerTools.exportDebugData();
+  }
+
+  /**
+   * Clear all debug data
+   */
+  clearDebugData(): void {
+    this.developerTools.clearDebugData();
+  }
+
+  /**
+   * Simulate network conditions for testing (dev mode only)
+   */
+  simulateNetworkConditions(config: { latency?: number; packetLoss?: number; bandwidth?: number }): void {
+    this.developerTools.simulateNetworkConditions({
+      enabled: true,
+      ...config
+    });
+  }
+
+  /**
+   * Get enhanced error with developer tips
+   */
+  createDeveloperFriendlyError(
+    message: string, 
+    code: string, 
+    tips: string[] = [],
+    examples: string[] = []
+  ): DeveloperFriendlyError {
+    return new DeveloperFriendlyError(message, code, tips, examples);
   }
 }
