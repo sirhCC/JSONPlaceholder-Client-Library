@@ -1,5 +1,0 @@
-export { JsonPlaceholderProvider, useJsonPlaceholderClient, useJsonPlaceholderClientOptional, type JsonPlaceholderProviderProps } from './context';
-export { useQuery, useMutation, type UseQueryOptions, type UseQueryResult, type UseMutationOptions, type UseMutationResult } from './hooks';
-export { usePosts, usePost, usePostsWithPagination, useSearchPosts, usePostsByUser, useComments, useCommentsWithPagination, useCommentsByPost, useSearchComments, useUsers, useUser, useUsersWithPagination, useSearchUsers, useCreatePost, useUpdatePost, useDeletePost, usePrefetchPosts, usePrefetchUser, usePrefetchComments } from './api-hooks';
-export type { Post, Comment, User, PaginatedResponse, PostSearchOptions, CommentSearchOptions, UserSearchOptions, JsonPlaceholderClient } from 'jsonplaceholder-client-lib';
-//# sourceMappingURL=index.d.ts.map
