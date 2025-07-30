@@ -95,6 +95,21 @@ export {
   FallbackManager
 } from './error-recovery';
 
+// Rate Limiting - optional security feature
+export type {
+  RateLimitConfig
+} from './types';
+
+export type {
+  RateLimitResult,
+  RateLimitAnalytics
+} from './rate-limiter';
+
+export {
+  RateLimiter,
+  RateLimitingError
+} from './rate-limiter';
+
 // Developer tools - optional feature
 export type {
   DevModeConfig,
