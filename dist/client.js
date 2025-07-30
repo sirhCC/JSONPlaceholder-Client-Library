@@ -849,3 +849,4 @@ class JsonPlaceholderClient {
     }
 }
 exports.JsonPlaceholderClient = JsonPlaceholderClient;
+//# sourceMappingURL=client.js.map

@@ -3,6 +3,8 @@ import { PostNotFoundError, ValidationError, ServerError, RateLimitError, ApiCli
 import { CacheManager } from './cache';
 import { createLogger } from './logger';
 import { PerformanceMonitor, PerformanceDashboard } from './performance';
+import { ErrorRecoveryManager, ErrorRecoveryDashboard } from './error-recovery';
+import { DeveloperTools, DeveloperFriendlyError } from './developer-tools';
 const defaultApiUrl = 'https://jsonplaceholder.typicode.com';
 export class JsonPlaceholderClient {
     constructor(baseURL = defaultApiUrl, config) {
@@ -20,8 +22,12 @@ export class JsonPlaceholderClient {
         this.cacheManager = new CacheManager(config?.cacheConfig, this.logger);
         this.performanceMonitor = new PerformanceMonitor(config?.performanceConfig);
         this.performanceDashboard = new PerformanceDashboard(this.performanceMonitor);
+        this.errorRecoveryManager = new ErrorRecoveryManager(config?.errorRecoveryConfig);
+        this.errorRecoveryDashboard = new ErrorRecoveryDashboard(this.errorRecoveryManager);
+        this.developerTools = new DeveloperTools({ enabled: false, ...config?.devModeConfig }, this.logger);
         this.setupDefaultInterceptors();
         this.setupPerformanceTracking();
+        this.setupDeveloperInstrumentation();
     }
     setupDefaultInterceptors() {
         // Request interceptor to apply all custom request interceptors
@@ -114,6 +120,52 @@ export class JsonPlaceholderClient {
                     latestMetric.cacheHit = event.type === 'hit';
                 }
             }
+        });
+    }
+    setupDeveloperInstrumentation() {
+        // Add developer tools request inspection
+        this.addRequestInterceptor((config) => {
+            const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            config.requestId = requestId;
+            this.developerTools.inspectRequest({
+                id: requestId,
+                method: config.method?.toUpperCase() || 'GET',
+                url: config.url || '',
+                headers: config.headers || {},
+                body: config.data,
+                timestamp: Date.now(),
+                cacheKey: this.cacheManager.generateKey({
+                    method: config.method?.toUpperCase() || 'GET',
+                    url: config.url || '',
+                    params: config.params,
+                    data: config.data
+                }),
+                expectedResponseTime: 500 // Default estimate
+            });
+            return config;
+        });
+        // Add developer tools response inspection
+        this.addResponseInterceptor((response) => {
+            const config = response.config;
+            const requestId = config.requestId || 'unknown';
+            const startTime = config.startTime || Date.now();
+            this.developerTools.inspectResponse({
+                requestId,
+                status: response.status,
+                statusText: response.statusText,
+                headers: response.headers,
+                body: response.data,
+                responseTime: Date.now() - startTime,
+                cacheHit: false, // Will be updated by cache events
+                timestamp: Date.now(),
+                size: this.calculateResponseSize(response.data)
+            });
+            return response;
+        });
+        // Network simulation for developer mode
+        this.addRequestInterceptor(async (config) => {
+            await this.developerTools.simulateNetworkDelay();
+            return config;
         });
     }
     calculateResponseSize(data) {
@@ -442,16 +494,34 @@ export class JsonPlaceholderClient {
         }
         return undefined;
     }
+    /**
+     * Wrapper method that adds error recovery to HTTP requests
+     */
+    async executeWithErrorRecovery(operation, fallbackOperations = []) {
+        return this.errorRecoveryManager.execute(operation, fallbackOperations);
+    }
     async getPosts(cacheOptions = {}) {
         try {
-            return await this.handleCachedRequest({
+            return await this.executeWithErrorRecovery(() => this.handleCachedRequest({
                 method: 'GET',
                 url: '/posts',
                 params: {}
             }, async () => {
                 const response = await this.client.get('/posts');
                 return response.data;
-            }, cacheOptions);
+            }, cacheOptions), 
+            // Fallback: try to get stale cache data
+            [
+                async () => {
+                    const key = this.cacheManager.generateKey({ method: 'GET', url: '/posts', params: {} });
+                    const cachedData = await this.cacheManager.get(key);
+                    if (cachedData) {
+                        this.logger.warn('Using stale cache data as fallback for getPosts');
+                        return cachedData;
+                    }
+                    throw new Error('No fallback data available');
+                }
+            ]);
         }
         catch (error) {
             this.handleError(error, 'posts');
@@ -627,6 +697,149 @@ export class JsonPlaceholderClient {
         catch (error) {
             this.handleError(error, `post/${id}`);
         }
+    }
+    // Error Recovery Management Methods
+    /**
+     * Get circuit breaker statistics
+     */
+    getCircuitBreakerStats() {
+        return this.errorRecoveryManager.getCircuitBreakerStats();
+    }
+    /**
+     * Add event listener for error recovery events
+     */
+    addErrorRecoveryEventListener(listener) {
+        this.errorRecoveryManager.addEventListener(listener);
+    }
+    /**
+     * Remove event listener for error recovery events
+     */
+    removeErrorRecoveryEventListener(listener) {
+        this.errorRecoveryManager.removeEventListener(listener);
+    }
+    /**
+     * Manually open the circuit breaker
+     */
+    forceCircuitOpen() {
+        this.errorRecoveryManager.forceCircuitOpen();
+    }
+    /**
+     * Manually close the circuit breaker
+     */
+    forceCircuitClose() {
+        this.errorRecoveryManager.forceCircuitClose();
+    }
+    /**
+     * Reset error recovery state
+     */
+    resetErrorRecovery() {
+        this.errorRecoveryManager.reset();
+    }
+    /**
+     * Get error recovery configuration
+     */
+    getErrorRecoveryConfig() {
+        return this.errorRecoveryManager.getConfig();
+    }
+    /**
+     * Update error recovery configuration
+     */
+    updateErrorRecoveryConfig(config) {
+        this.errorRecoveryManager.updateConfig(config);
+    }
+    /**
+     * Print error recovery dashboard report
+     */
+    printErrorRecoveryReport() {
+        this.errorRecoveryDashboard.printReport();
+    }
+    /**
+     * Print error recovery insights
+     */
+    printErrorRecoveryInsights() {
+        this.errorRecoveryDashboard.printInsights();
+    }
+    /**
+     * Get error recovery dashboard report as string
+     */
+    getErrorRecoveryReport() {
+        return this.errorRecoveryDashboard.getReport();
+    }
+    /**
+     * Get error recovery insights as array
+     */
+    getErrorRecoveryInsights() {
+        return this.errorRecoveryDashboard.getInsights();
+    }
+    // Developer Experience Methods
+    /**
+     * Enable or disable developer mode
+     */
+    setDeveloperMode(enabled) {
+        this.developerTools.updateConfig({ enabled });
+    }
+    /**
+     * Get developer tools debug report
+     */
+    getDeveloperDebugReport() {
+        return this.developerTools.generateDebugReport();
+    }
+    /**
+     * Print developer debug report to console
+     */
+    printDeveloperDebugReport() {
+        this.developerTools.printDebugReport();
+    }
+    /**
+     * Get code examples for common operations
+     */
+    getCodeExamples() {
+        return this.developerTools.getCodeExamples();
+    }
+    /**
+     * Generate a code example for a specific operation
+     */
+    generateCodeExample(operation) {
+        return this.developerTools.generateCodeExample(operation);
+    }
+    /**
+     * Get request inspections (dev mode only)
+     */
+    getRequestInspections() {
+        return this.developerTools.getRequestInspections();
+    }
+    /**
+     * Get response inspections (dev mode only)
+     */
+    getResponseInspections() {
+        return this.developerTools.getResponseInspections();
+    }
+    /**
+     * Export all debug data
+     */
+    exportDebugData() {
+        return this.developerTools.exportDebugData();
+    }
+    /**
+     * Clear all debug data
+     */
+    clearDebugData() {
+        this.developerTools.clearDebugData();
+    }
+    /**
+     * Simulate network conditions for testing (dev mode only)
+     */
+    simulateNetworkConditions(config) {
+        this.developerTools.simulateNetworkConditions({
+            enabled: true,
+            ...config
+        });
+    }
+    /**
+     * Get enhanced error with developer tips
+     */
+    createDeveloperFriendlyError(message, code, tips = [], examples = []) {
+        return new DeveloperFriendlyError(message, code, tips, examples);
     }
 }
 //# sourceMappingURL=client.js.map

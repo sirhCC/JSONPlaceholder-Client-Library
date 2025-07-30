@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PerformanceDashboard = exports.PerformanceMonitor = exports.defaultLogger = exports.createLogger = exports.SilentLogger = exports.Logger = exports.SessionStorageCacheStorage = exports.LocalStorageCacheStorage = exports.MemoryCacheStorage = exports.CacheManager = exports.RateLimitError = exports.ServerError = exports.ValidationError = exports.PostNotFoundError = exports.ApiClientError = exports.JsonPlaceholderClient = void 0;
+exports.DeveloperFriendlyError = exports.DeveloperTools = exports.FallbackManager = exports.RetryManager = exports.CircuitBreaker = exports.ErrorRecoveryDashboard = exports.ErrorRecoveryManager = exports.PerformanceDashboard = exports.PerformanceMonitor = exports.defaultLogger = exports.createLogger = exports.SilentLogger = exports.Logger = exports.SessionStorageCacheStorage = exports.LocalStorageCacheStorage = exports.MemoryCacheStorage = exports.CacheManager = exports.RateLimitError = exports.ServerError = exports.ValidationError = exports.PostNotFoundError = exports.ApiClientError = exports.JsonPlaceholderClient = void 0;
 // Main client export
 var client_1 = require("./client");
 Object.defineProperty(exports, "JsonPlaceholderClient", { enumerable: true, get: function () { return client_1.JsonPlaceholderClient; } });
@@ -24,4 +24,13 @@ Object.defineProperty(exports, "defaultLogger", { enumerable: true, get: functio
 var performance_1 = require("./performance");
 Object.defineProperty(exports, "PerformanceMonitor", { enumerable: true, get: function () { return performance_1.PerformanceMonitor; } });
 Object.defineProperty(exports, "PerformanceDashboard", { enumerable: true, get: function () { return performance_1.PerformanceDashboard; } });
+var error_recovery_1 = require("./error-recovery");
+Object.defineProperty(exports, "ErrorRecoveryManager", { enumerable: true, get: function () { return error_recovery_1.ErrorRecoveryManager; } });
+Object.defineProperty(exports, "ErrorRecoveryDashboard", { enumerable: true, get: function () { return error_recovery_1.ErrorRecoveryDashboard; } });
+Object.defineProperty(exports, "CircuitBreaker", { enumerable: true, get: function () { return error_recovery_1.CircuitBreaker; } });
+Object.defineProperty(exports, "RetryManager", { enumerable: true, get: function () { return error_recovery_1.RetryManager; } });
+Object.defineProperty(exports, "FallbackManager", { enumerable: true, get: function () { return error_recovery_1.FallbackManager; } });
+var developer_tools_1 = require("./developer-tools");
+Object.defineProperty(exports, "DeveloperTools", { enumerable: true, get: function () { return developer_tools_1.DeveloperTools; } });
+Object.defineProperty(exports, "DeveloperFriendlyError", { enumerable: true, get: function () { return developer_tools_1.DeveloperFriendlyError; } });
 //# sourceMappingURL=index.js.map

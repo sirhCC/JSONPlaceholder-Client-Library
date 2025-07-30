@@ -5,4 +5,6 @@ export { ApiClientError, PostNotFoundError, ValidationError, ServerError, RateLi
 export { CacheManager, MemoryCacheStorage, LocalStorageCacheStorage, SessionStorageCacheStorage } from './cache';
 export { Logger, SilentLogger, createLogger, defaultLogger } from './logger';
 export { PerformanceMonitor, PerformanceDashboard } from './performance';
+export { ErrorRecoveryManager, ErrorRecoveryDashboard, CircuitBreaker, RetryManager, FallbackManager } from './error-recovery';
+export { DeveloperTools, DeveloperFriendlyError } from './developer-tools';
 //# sourceMappingURL=index.js.map

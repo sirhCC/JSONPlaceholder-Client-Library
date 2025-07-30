@@ -9,4 +9,8 @@ export { Logger, SilentLogger, createLogger, defaultLogger } from './logger';
 export type { RequestInterceptor, ResponseInterceptor, ResponseErrorInterceptor, InterceptorOptions, RequestConfig, ResponseData } from './types';
 export type { PerformanceMetric, PerformanceStats, PerformanceTrend, PerformanceAlert, PerformanceConfig, PerformanceEvent, PerformanceEventType, PerformanceEventListener } from './performance';
 export { PerformanceMonitor, PerformanceDashboard } from './performance';
+export type { ErrorRecoveryConfig, CircuitBreakerConfig, RetryConfig, FallbackConfig, HealthCheckConfig, CircuitBreakerStats, ErrorRecoveryEvent, ErrorRecoveryEventListener, CircuitState, RetryAttempt } from './error-recovery';
+export { ErrorRecoveryManager, ErrorRecoveryDashboard, CircuitBreaker, RetryManager, FallbackManager } from './error-recovery';
+export type { DevModeConfig, NetworkSimulationConfig, RequestInspection, ResponseInspection, PerformanceWarning, CodeExample } from './developer-tools';
+export { DeveloperTools, DeveloperFriendlyError } from './developer-tools';
 //# sourceMappingURL=index.d.ts.map

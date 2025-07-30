@@ -124,3 +124,4 @@ function createLogger(config) {
  * Default logger instance
  */
 exports.defaultLogger = createLogger();
+//# sourceMappingURL=logger.js.map
