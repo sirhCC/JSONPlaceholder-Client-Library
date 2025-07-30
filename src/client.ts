@@ -25,7 +25,8 @@ import {
   CacheKey,
   CacheEvent,
   ILogger,
-  LoggerConfig
+  LoggerConfig,
+  RateLimitConfig
 } from './types';
 import { CacheManager } from './cache';
 import { createLogger } from './logger';
@@ -53,6 +54,7 @@ import {
   CodeExample
 } from './developer-tools';
 import { DataSanitizer, SanitizationConfig } from './sanitization';
+import { RateLimiter, RateLimitResult, RateLimitAnalytics, RateLimitingError } from './rate-limiter';
 
 const defaultApiUrl = 'https://jsonplaceholder.typicode.com';
 
@@ -70,6 +72,7 @@ export interface ClientConfig {
   errorRecoveryConfig?: Partial<ErrorRecoveryConfig>;
   devModeConfig?: Partial<DevModeConfig>;
   securityConfig?: Partial<SecurityConfig>;
+  rateLimitConfig?: Partial<RateLimitConfig>;
 }
 
 export class JsonPlaceholderClient {
@@ -85,6 +88,7 @@ export class JsonPlaceholderClient {
   private errorRecoveryDashboard: ErrorRecoveryDashboard;
   private developerTools: DeveloperTools;
   private dataSanitizer: DataSanitizer;
+  private rateLimiter: RateLimiter;
 
   constructor(baseURL: string = defaultApiUrl, config?: ClientConfig) {
     const securityConfig = {
@@ -112,9 +116,11 @@ export class JsonPlaceholderClient {
     this.errorRecoveryDashboard = new ErrorRecoveryDashboard(this.errorRecoveryManager);
     this.developerTools = new DeveloperTools({ enabled: false, ...config?.devModeConfig }, this.logger);
     this.dataSanitizer = new DataSanitizer(securityConfig.sanitization);
+    this.rateLimiter = new RateLimiter(config?.rateLimitConfig);
     this.setupDefaultInterceptors();
     this.setupPerformanceTracking();
     this.setupDeveloperInstrumentation();
+    this.setupRateLimiting();
   }
 
   private setupDefaultInterceptors(): void {
@@ -279,6 +285,44 @@ export class JsonPlaceholderClient {
     this.addRequestInterceptor(async (config) => {
       await this.developerTools.simulateNetworkDelay();
       return config;
+    });
+  }
+
+  private setupRateLimiting(): void {
+    // Add rate limiting to all requests
+    this.addRequestInterceptor(async (config) => {
+      const endpoint = config.url || '';
+      
+      try {
+        const rateLimitResult = await this.rateLimiter.checkLimit(endpoint);
+        
+        if (!rateLimitResult.allowed) {
+          const error = new RateLimitingError(
+            `Rate limit exceeded for ${endpoint}. Please try again later.`,
+            rateLimitResult
+          );
+          throw error;
+        }
+
+        // Add rate limit headers to the request for monitoring
+        if (rateLimitResult.remaining !== undefined) {
+          config.headers = {
+            ...config.headers,
+            ...this.rateLimiter.getHeaders(rateLimitResult)
+          };
+        }
+
+        return config;
+      } catch (error) {
+        if (error instanceof RateLimitingError) {
+          this.logger.warn(`Rate limit exceeded: ${error.message}`, {
+            endpoint,
+            retryAfter: error.retryAfter,
+            remaining: error.remaining
+          });
+        }
+        throw error;
+      }
     });
   }
 
@@ -1163,5 +1207,71 @@ export class JsonPlaceholderClient {
     examples: string[] = []
   ): DeveloperFriendlyError {
     return new DeveloperFriendlyError(message, code, tips, examples);
+  }
+
+  // Rate Limiting Methods
+
+  /**
+   * Get rate limiting analytics
+   */
+  getRateLimitAnalytics(): RateLimitAnalytics {
+    return this.rateLimiter.getAnalytics();
+  }
+
+  /**
+   * Reset rate limiting state
+   */
+  resetRateLimit(): void {
+    this.rateLimiter.reset();
+  }
+
+  /**
+   * Update rate limiting configuration
+   */
+  updateRateLimitConfig(config: Partial<RateLimitConfig>): void {
+    this.rateLimiter.updateConfig(config);
+  }
+
+  /**
+   * Check if a specific endpoint is currently rate limited
+   */
+  async checkRateLimit(endpoint: string): Promise<RateLimitResult> {
+    return this.rateLimiter.checkLimit(endpoint);
+  }
+
+  /**
+   * Get current rate limit status for an endpoint
+   */
+  getRateLimitStatus(endpoint: string): Promise<RateLimitResult> {
+    return this.rateLimiter.checkLimit(endpoint, 0); // Priority 0 for status check
+  }
+
+  /**
+   * Print rate limiting analytics report
+   */
+  printRateLimitReport(): void {
+    const analytics = this.rateLimiter.getAnalytics();
+    
+    console.log('\n📊 Rate Limiting Analytics Report');
+    console.log('=====================================');
+    console.log(`Total Requests: ${analytics.totalRequests}`);
+    console.log(`Blocked Requests: ${analytics.blockedRequests}`);
+    console.log(`Queued Requests: ${analytics.queuedRequests}`);
+    console.log(`Block Rate: ${((analytics.blockedRequests / analytics.totalRequests) * 100).toFixed(1)}%`);
+    console.log(`Average Wait Time: ${analytics.averageWaitTime.toFixed(2)}ms`);
+    console.log(`Peak Requests/Second: ${analytics.peakRequestsPerSecond}`);
+    console.log(`Current Queue Size: ${analytics.currentQueueSize}`);
+    
+    if (Object.keys(analytics.endpointStats).length > 0) {
+      console.log('\n📈 Endpoint Statistics:');
+      Object.entries(analytics.endpointStats).forEach(([endpoint, stats]) => {
+        console.log(`  ${endpoint}:`);
+        console.log(`    Requests: ${stats.requests}`);
+        console.log(`    Blocked: ${stats.blocked}`);
+        console.log(`    Block Rate: ${((stats.blocked / stats.requests) * 100).toFixed(1)}%`);
+        console.log(`    Average Latency: ${stats.averageLatency.toFixed(2)}ms`);
+      });
+    }
+    console.log('=====================================\n');
   }
 }
