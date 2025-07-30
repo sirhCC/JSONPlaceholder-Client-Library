@@ -1,173 +1,320 @@
 /**
- * Security Configuration Example
+ * Security Configuration Examples
  * 
- * This example demonstrates how to configure security settings
- * in the JsonPlaceholder Client Library for production usage.
+ * This file demonstrates various security configurations for the
+ * JSONPlaceholder Client Library in different environments.
  */
 
 const { JsonPlaceholderClient, DataSanitizer } = require('../dist/index');
 
-async function securityExample() {
-  console.log('🔒 Security Configuration Example\n');
+// ===== BASIC SECURITY SETUP =====
 
-  // Demo 1: Custom Timeout Configuration
-  console.log('⏱️  Demo 1: Custom Timeout Configuration');
+// Simple security-enabled client
+const basicSecureClient = new JsonPlaceholderClient('https://jsonplaceholder.typicode.com', {
+  securityConfig: {
+    timeout: 10000,           // 10 second timeout
+    maxRedirects: 3,          // Limit redirects to prevent redirect loops
+    validateStatus: (status) => status < 400 // Only accept success responses
+  },
   
-  const secureClient = new JsonPlaceholderClient('https://jsonplaceholder.typicode.com', {
-    securityConfig: {
-      timeout: 5000,        // 5 second timeout (shorter for better security)
-      maxRedirects: 3,      // Limit redirects to prevent redirect loops
-      validateStatus: (status) => {
-        // Only accept 2xx status codes as successful
-        return status >= 200 && status < 300;
-      }
-    }
-  });
-
-  try {
-    console.log('   Making request with 5-second timeout...');
-    const start = performance.now();
-    const post = await secureClient.getPost(1);
-    const duration = performance.now() - start;
-    
-    console.log(`   ✅ Request completed in ${duration.toFixed(2)}ms`);
-    console.log(`   📄 Post title: "${post.title}"`);
-  } catch (error) {
-    if (error.code === 'ECONNABORTED') {
-      console.log('   ⚠️  Request timed out after 5 seconds');
-    } else {
-      console.log(`   ❌ Request failed: ${error.message}`);
-    }
-  }
-
-  // Demo 2: Data Sanitization
-  console.log('\n🧹 Demo 2: Data Sanitization');
-  
-  const clientWithSanitization = new JsonPlaceholderClient('https://jsonplaceholder.typicode.com', {
-    securityConfig: {
-      sanitization: {
-        enabled: true,
-        stripHtml: true,
-        trimWhitespace: true,
-        maxStringLength: 1000
-      }
-    }
-  });
-
-  // Test with potentially dangerous data
-  const maliciousData = {
-    title: '<script>alert("XSS Attack!")</script>My Safe Post',
-    body: '  This post contains javascript:alert("XSS") and should be cleaned  ',
-    userId: 1
-  };
-
-  console.log('   🔍 Original data:', JSON.stringify(maliciousData, null, 2));
-  
-  const sanitizedData = clientWithSanitization.sanitizeRequestData(maliciousData);
-  console.log('   ✅ Sanitized data:', JSON.stringify(sanitizedData, null, 2));
-  
-  // Check if data is dangerous
-  const isDangerous = clientWithSanitization.isDangerousData(maliciousData);
-  console.log(`   🚨 Original data is dangerous: ${isDangerous}`);
-  
-  const isSafeSanitized = clientWithSanitization.isDangerousData(sanitizedData);
-  console.log(`   ✅ Sanitized data is safe: ${!isSafeSanitized}`);
-
-  // Demo 3: Standalone Data Sanitizer
-  console.log('\n🛡️  Demo 3: Standalone Data Sanitizer');
-  
-  const sanitizer = new DataSanitizer({
+  rateLimitConfig: {
     enabled: true,
-    stripHtml: true,
-    maxStringLength: 100,
-    blockedPatterns: [
-      /<script[^>]*>.*?<\/script>/gis,
-      /javascript:\s*/gi,
-      /on\w+\s*=/gi
-    ]
-  });
-
-  const testData = [
-    'Normal safe text',
-    '<script>alert("XSS")</script>',
-    'javascript:alert("XSS")',
-    'onclick="alert(\'XSS\')"',
-    '   Whitespace text   ',
-    'a'.repeat(150) // Long string
-  ];
-
-  console.log('   Testing various inputs:');
-  testData.forEach((input, index) => {
-    const result = sanitizer.sanitize(input);
-    const truncatedInput = input.length > 50 ? input.substring(0, 50) + '...' : input;
-    console.log(`   ${index + 1}. Input:  "${truncatedInput}"`);
-    console.log(`      Output: "${result.sanitized}"`);
-    if (result.warnings.length > 0) {
-      console.log(`      Warnings: ${result.warnings.join(', ')}`);
-    }
-    if (result.blocked.length > 0) {
-      console.log(`      Blocked: ${result.blocked.join(', ')}`);
-    }
-    console.log('');
-  });
-
-  // Demo 4: Conservative Security Settings
-  console.log('🛡️  Demo 4: Ultra-Secure Configuration');
+    strategy: 'token-bucket',
+    maxRequests: 100,         // 100 requests per minute
+    windowMs: 60000
+  },
   
-  const ultraSecureClient = new JsonPlaceholderClient('https://jsonplaceholder.typicode.com', {
-    securityConfig: {
-      timeout: 3000,        // Very short timeout
-      maxRedirects: 0,      // No redirects allowed
-      validateStatus: (status) => {
-        // Very strict - only 200 OK
-        return status === 200;
+  sanitizationConfig: {
+    enabled: true,
+    strictMode: true          // Enable strict XSS protection
+  }
+});
+
+// ===== PRODUCTION SECURITY CONFIGURATION =====
+
+const productionClient = new JsonPlaceholderClient(process.env.API_BASE_URL || 'https://jsonplaceholder.typicode.com', {
+  // Enhanced timeout and connection security
+  securityConfig: {
+    timeout: 5000,            // Strict 5 second timeout
+    maxRedirects: 1,          // Minimal redirects
+    validateStatus: (status) => status >= 200 && status < 300,
+    
+    // Additional axios security options
+    maxContentLength: 10000,  // Limit response size to 10KB
+    maxBodyLength: 2000       // Limit request size to 2KB
+  },
+  
+  // Advanced rate limiting with endpoint-specific rules
+  rateLimitConfig: {
+    enabled: true,
+    strategy: 'sliding-window',
+    maxRequests: 1000,        // Global limit: 1000/minute
+    windowMs: 60000,
+    
+    // Different limits for different endpoints
+    endpointLimits: {
+      '/posts': { maxRequests: 100, windowMs: 60000 },    // 100/min for posts
+      '/users': { maxRequests: 50, windowMs: 60000 },     // 50/min for users
+      '/comments': { maxRequests: 200, windowMs: 60000 }  // 200/min for comments
+    },
+    
+    // Skip rate limiting for monitoring endpoints
+    skipEndpoints: ['/health', '/metrics', '/status'],
+    
+    // Enable analytics and headers
+    enableAnalytics: true,
+    includeHeaders: true,
+    
+    // Queue management
+    maxQueueSize: 20,
+    queueTimeout: 5000
+  },
+  
+  // Comprehensive data sanitization
+  sanitizationConfig: {
+    enabled: true,
+    strictMode: true,
+    logBlocked: true,         // Log blocked patterns for monitoring
+    
+    // Custom security patterns
+    customPatterns: [
+      // XSS protection patterns
+      /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+      /javascript:/gi,
+      /on\w+\s*=/gi,
+      /data:text\/html/gi,
+      
+      // SQL injection protection patterns
+      /('|(\\'))|((\s)*union(\s)+select(\s)*)/gi,
+      /((\s)*or(\s)+1(\s)*=(\s)*1(\s)*)/gi,
+      /((\s)*drop(\s)+table(\s)*)/gi,
+      /((\s)*insert(\s)+into(\s)*)/gi,
+      /((\s)*delete(\s)+from(\s)*)/gi
+    ]
+  },
+  
+  // Security-focused logging
+  logger: {
+    level: 'warn',            // Only log warnings and errors in production
+    customLogger: {
+      warn: (message, context) => {
+        // Send security warnings to monitoring system
+        if (message.includes('Rate limit') || 
+            message.includes('sanitization') || 
+            message.includes('timeout')) {
+          console.warn(`[SECURITY] ${message}`, context);
+          // Here you could send to your monitoring system
+          // sendSecurityAlert({ type: 'SECURITY_WARNING', message, context });
+        }
       },
-      sanitization: {
-        enabled: true,
-        stripHtml: true,
-        trimWhitespace: true,
-        maxStringLength: 500,
-        allowedTags: [], // No HTML tags allowed
-        blockedPatterns: [
-          /<[^>]*>/g,           // Block ALL HTML tags
-          /javascript:/gi,
-          /data:/gi,
-          /vbscript:/gi
-        ]
+      error: (message, context) => {
+        console.error(`[SECURITY ERROR] ${message}`, context);
+        // sendSecurityAlert({ type: 'SECURITY_ERROR', message, context });
       }
     }
-  });
-
-  try {
-    console.log('   Making ultra-secure request...');
-    const users = await ultraSecureClient.getUsers();
-    const sanitizedUsers = ultraSecureClient.sanitizeResponseData(users.slice(0, 2));
-    console.log(`   ✅ Retrieved and sanitized ${sanitizedUsers.length} users with ultra-secure settings`);
-    console.log('   🔒 Security features active:');
-    console.log('      • 3-second timeout protection');
-    console.log('      • Zero redirects allowed');
-    console.log('      • Only 200 status accepted');
-    console.log('      • All HTML tags stripped');
-    console.log('      • All dangerous patterns blocked');
-    console.log('      • 500 character limit enforced');
-  } catch (error) {
-    console.log(`   ⚠️  Ultra-secure request failed: ${error.message}`);
   }
+});
 
-  console.log('\n✨ Security configuration example completed!\n');
-  console.log('💡 Key Security Benefits:');
-  console.log('   • Prevents hanging requests with timeouts');
-  console.log('   • Protects against redirect loops');
-  console.log('   • Validates response status codes');
-  console.log('   • Sanitizes request/response data');
-  console.log('   • Blocks XSS and injection attacks');
-  console.log('   • Configurable for different security levels');
-  console.log('   • Production-ready with sensible defaults');
+// ===== DEVELOPMENT SECURITY CONFIGURATION =====
+
+const developmentClient = new JsonPlaceholderClient('http://localhost:3001', {
+  securityConfig: {
+    timeout: 30000,           // Longer timeout for debugging
+    maxRedirects: 5,
+    validateStatus: () => true // Accept all status codes in development
+  },
+  
+  rateLimitConfig: {
+    enabled: true,
+    strategy: 'token-bucket',
+    maxRequests: 1000,        // Higher limits for testing
+    windowMs: 60000,
+    enableAnalytics: true     // Enable analytics for debugging
+  },
+  
+  sanitizationConfig: {
+    enabled: true,
+    strictMode: false,        // Less strict in development
+    logBlocked: true          // Log everything for debugging
+  },
+  
+  logger: { level: 'debug' }  // Verbose logging in development
+});
+
+// ===== API KEY SECURITY =====
+
+// Secure API key management
+function createAuthenticatedClient(apiKey) {
+  if (!apiKey) {
+    throw new Error('API key is required');
+  }
+  
+  const client = new JsonPlaceholderClient('https://api.example.com', {
+    securityConfig: {
+      timeout: 10000,
+      validateStatus: (status) => status < 400
+    },
+    rateLimitConfig: {
+      enabled: true,
+      maxRequests: 100,
+      windowMs: 60000
+    }
+  });
+  
+  // Add authentication interceptor
+  client.addAuthInterceptor(apiKey, 'X-API-Key');
+  
+  // Add request logging that excludes sensitive headers
+  client.addRequestInterceptor((config) => {
+    console.log(`[API REQUEST] ${config.method?.toUpperCase()} ${config.url}`);
+    // Don't log the actual API key
+    return config;
+  });
+  
+  return client;
 }
 
-// Run the example
+// ===== SECURITY MONITORING =====
+
+// Security monitoring and alerting
+function createMonitoredClient(baseURL, alertCallback) {
+  const client = new JsonPlaceholderClient(baseURL, {
+    securityConfig: {
+      timeout: 10000,
+      validateStatus: (status) => status < 400
+    },
+    rateLimitConfig: {
+      enabled: true,
+      maxRequests: 100,
+      windowMs: 60000,
+      enableAnalytics: true
+    },
+    sanitizationConfig: {
+      enabled: true,
+      strictMode: true,
+      logBlocked: true
+    }
+  });
+  
+  // Monitor for security events
+  setInterval(() => {
+    const analytics = client.getRateLimitAnalytics();
+    const performance = client.getPerformanceStats();
+    
+    // Check for suspicious patterns
+    const alerts = [];
+    
+    if (analytics.blockedRequests > analytics.totalRequests * 0.3) {
+      alerts.push({
+        type: 'HIGH_RATE_LIMIT_BLOCKS',
+        severity: 'WARNING',
+        message: `High rate of blocked requests: ${analytics.blockedRequests}/${analytics.totalRequests}`,
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    if (performance.errorRate > 0.1) {
+      alerts.push({
+        type: 'HIGH_ERROR_RATE',
+        severity: 'ERROR',
+        message: `High error rate detected: ${(performance.errorRate * 100).toFixed(1)}%`,
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    if (performance.averageResponseTime > 5000) {
+      alerts.push({
+        type: 'SLOW_RESPONSE_TIME',
+        severity: 'WARNING',
+        message: `Slow average response time: ${performance.averageResponseTime}ms`,
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    // Send alerts
+    alerts.forEach(alert => {
+      if (alertCallback) {
+        alertCallback(alert);
+      } else {
+        console.warn(`[SECURITY ALERT] ${alert.type}: ${alert.message}`);
+      }
+    });
+    
+  }, 60000); // Check every minute
+  
+  return client;
+}
+
+// ===== USAGE EXAMPLES =====
+
+async function demonstrateSecurityFeatures() {
+  console.log('🔒 Security Configuration Examples\n');
+  
+  // 1. Basic secure client
+  console.log('1. Creating basic secure client...');
+  const client = basicSecureClient;
+  
+  try {
+    // Test rate limiting
+    console.log('   Testing rate limiting...');
+    for (let i = 0; i < 5; i++) {
+      await client.getPost(1);
+      console.log(`   ✅ Request ${i + 1} successful`);
+    }
+    
+    // Check rate limit status
+    const rateLimitStatus = await client.checkRateLimit('/posts');
+    console.log('   📊 Rate limit status:', rateLimitStatus);
+    
+  } catch (error) {
+    console.error('   ❌ Rate limit error:', error.message);
+  }
+  
+  // 2. Data sanitization
+  console.log('\n2. Testing data sanitization...');
+  const sanitizer = new DataSanitizer({
+    strictMode: true,
+    logBlocked: true
+  });
+  
+  const maliciousInput = '<script>alert("XSS")</script>Hello World';
+  const sanitized = sanitizer.sanitize(maliciousInput);
+  console.log('   Original:', maliciousInput);
+  console.log('   Sanitized:', sanitized);
+  
+  // 3. Security monitoring
+  console.log('\n3. Security analytics...');
+  const analytics = client.getRateLimitAnalytics();
+  console.log('   📈 Rate limit analytics:', {
+    totalRequests: analytics.totalRequests,
+    blockedRequests: analytics.blockedRequests,
+    successRate: `${((1 - analytics.blockedRequests / analytics.totalRequests) * 100).toFixed(1)}%`
+  });
+  
+  // 4. Performance monitoring
+  const performanceStats = client.getPerformanceStats();
+  console.log('   ⚡ Performance metrics:', {
+    averageResponseTime: `${performanceStats.averageResponseTime}ms`,
+    errorRate: `${(performanceStats.errorRate * 100).toFixed(1)}%`,
+    cacheHitRate: `${(performanceStats.cacheHitRate * 100).toFixed(1)}%`
+  });
+  
+  console.log('\n🎯 Security best practices demonstrated!');
+}
+
+// Export configurations for use in other files
+module.exports = {
+  basicSecureClient,
+  productionClient,
+  developmentClient,
+  createAuthenticatedClient,
+  createMonitoredClient,
+  demonstrateSecurityFeatures
+};
+
+// Run demonstration if this file is executed directly
 if (require.main === module) {
-  securityExample().catch(console.error);
+  demonstrateSecurityFeatures()
+    .then(() => console.log('\n=== Security demonstration complete ==='))
+    .catch(console.error);
 }
-
-module.exports = { securityExample };
