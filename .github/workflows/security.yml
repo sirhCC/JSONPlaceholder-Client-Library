@@ -1,0 +1,75 @@
+name: Security Audit
+
+on:
+  schedule:
+    # Run daily at 02:00 UTC
+    - cron: '0 2 * * *'
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  security-audit:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run npm audit
+        run: |
+          echo "Running npm audit..."
+          npm audit --audit-level=moderate --json > audit-results.json || true
+          cat audit-results.json
+          
+      - name: Check for high/critical vulnerabilities
+        run: |
+          if npm audit --audit-level=high --dry-run; then
+            echo "✅ No high or critical vulnerabilities found"
+          else
+            echo "❌ High or critical vulnerabilities detected"
+            npm audit --audit-level=high
+            exit 1
+          fi
+          
+      - name: Run Snyk security scan
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+          
+      - name: Upload Snyk results to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: snyk.sarif
+          
+      - name: React package security audit
+        run: |
+          cd packages/react
+          npm ci
+          npm audit --audit-level=moderate --json > react-audit-results.json || true
+          cat react-audit-results.json
+          
+      - name: Check React package vulnerabilities
+        run: |
+          cd packages/react
+          if npm audit --audit-level=high --dry-run; then
+            echo "✅ No high or critical vulnerabilities found in React package"
+          else
+            echo "❌ High or critical vulnerabilities detected in React package"
+            npm audit --audit-level=high
+            exit 1
+          fi

@@ -1,0 +1,17 @@
+# Snyk (https://snyk.io) policy file
+version: v1.25.0
+
+# Configuration for dependency vulnerability scanning
+ignore: {}
+
+# Patch settings for automatically patched vulnerabilities
+patch: {}
+
+# Settings for license policy
+exclude:
+  global:
+    - "**/node_modules/**"
+    - "**/dist/**"
+    - "**/*.test.ts"
+    - "**/*.test.tsx"
+    - "**/coverage/**"
