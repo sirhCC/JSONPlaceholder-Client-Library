@@ -287,7 +287,7 @@ export class RequestValidator {
   validate(data: any, schema: ValidationSchema): ValidationResult {
     const errors: ValidationError[] = [];
     const warnings: string[] = [];
-    let sanitizedData = this.config.autoSanitize ? this.deepClone(data) : undefined;
+    const sanitizedData = this.config.autoSanitize ? this.deepClone(data) : undefined;
 
     // Validate each field in the schema
     for (const [fieldPath, rules] of Object.entries(schema)) {
@@ -439,7 +439,7 @@ export class RequestValidator {
     if (typeof obj === 'object') {
       const cloned: any = {};
       for (const key in obj) {
-        if (obj.hasOwnProperty(key)) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
           cloned[key] = this.deepClone(obj[key]);
         }
       }
@@ -537,7 +537,7 @@ export class CommonSchemas {
         ValidationRules.pattern(/^[0-9]{5}(-[0-9]{4})?$/, 'Invalid zipcode format')
       ],
       'phone': [
-        ValidationRules.pattern(/^[\+]?[1-9][\d]{0,15}$/, 'Invalid phone number format')
+        ValidationRules.pattern(/^[+]?[1-9][\d]{0,15}$/, 'Invalid phone number format')
       ],
       'website': [
         ValidationRules.url()
