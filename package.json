@@ -11,6 +11,16 @@
       "require": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
+    "./core-minimal": {
+      "import": "./dist/esm/core-minimal.js",
+      "require": "./dist/core-minimal.js",
+      "types": "./dist/core-minimal.d.ts"
+    },
+    "./production": {
+      "import": "./dist/esm/production.js",
+      "require": "./dist/production.js",
+      "types": "./dist/production.d.ts"
+    },
     "./core": {
       "import": "./dist/esm/core.js",
       "require": "./dist/core.js",
@@ -25,6 +35,11 @@
       "import": "./dist/esm/logging.js",
       "require": "./dist/logging.js",
       "types": "./dist/logging.d.ts"
+    },
+    "./features": {
+      "import": "./dist/esm/features.js",
+      "require": "./dist/features.js",
+      "types": "./dist/features.d.ts"
     }
   },
   "files": [
