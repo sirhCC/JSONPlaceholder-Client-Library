@@ -114,6 +114,13 @@ export interface InterceptorOptions {
   timeout?: number;
 }
 
+// Security Configuration Types
+export interface SecurityConfig {
+  timeout?: number; // Request timeout in milliseconds (default: 10000)
+  maxRedirects?: number; // Maximum number of redirects to follow (default: 5)
+  validateStatus?: (status: number) => boolean; // Custom status validation
+}
+
 // Cache Configuration Types
 export interface CacheConfig {
   enabled: boolean;
