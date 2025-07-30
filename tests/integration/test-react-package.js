@@ -29,4 +29,8 @@ try {
 
 } catch (error) {
     console.error('❌ Error testing React package:', error.message);
+    process.exit(1);
 }
+
+// Success exit
+process.exit(0);
