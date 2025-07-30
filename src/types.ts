@@ -280,3 +280,44 @@ export interface User {
     bs: string;
   };
 }
+
+// Rate Limiting Types
+export interface RateLimitConfig {
+  /** Enable rate limiting */
+  enabled: boolean;
+  
+  /** Rate limiting strategy */
+  strategy: 'token-bucket' | 'sliding-window' | 'fixed-window';
+  
+  /** Maximum requests per time window */
+  maxRequests: number;
+  
+  /** Time window in milliseconds */
+  windowMs: number;
+  
+  /** Maximum number of queued requests */
+  maxQueueSize: number;
+  
+  /** Skip rate limiting for certain endpoints */
+  skipEndpoints: string[];
+  
+  /** Per-endpoint specific limits */
+  endpointLimits: Record<string, {
+    maxRequests: number;
+    windowMs: number;
+  }>;
+  
+  /** Retry configuration for rate-limited requests */
+  retryConfig: {
+    maxRetries: number;
+    baseDelay: number;
+    maxDelay: number;
+    exponentialBackoff: boolean;
+  };
+  
+  /** Enable detailed analytics */
+  enableAnalytics: boolean;
+  
+  /** Custom headers to include rate limit info */
+  includeHeaders: boolean;
+}
