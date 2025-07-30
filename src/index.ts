@@ -73,27 +73,35 @@ export type {
 } from './performance';
 export { PerformanceMonitor, PerformanceDashboard } from './performance';
 
-// Error recovery - optional feature
+// Advanced Error Recovery System (Priority 4) - optional feature
 export type {
   ErrorRecoveryConfig,
-  CircuitBreakerConfig,
-  RetryConfig,
-  FallbackConfig,
-  HealthCheckConfig,
-  CircuitBreakerStats,
+  ErrorRecoveryStats,
   ErrorRecoveryEvent,
   ErrorRecoveryEventListener,
-  CircuitState,
-  RetryAttempt
-} from './error-recovery';
+  CircuitBreakerConfig,
+  CircuitBreakerStats,
+  RetryConfig,
+  RetryAttempt,
+  RetryStats,
+  QueueConfig,
+  QueuedRequest,
+  QueueStats,
+  RequestPriority
+} from './advanced-error-recovery';
 
 export {
-  ErrorRecoveryManager,
-  ErrorRecoveryDashboard,
+  AdvancedErrorRecovery,
+  ErrorRecoveryFactory,
   CircuitBreaker,
+  CircuitBreakerManager,
   RetryManager,
-  FallbackManager
-} from './error-recovery';
+  RequestQueue,
+  QueueFactory,
+  SpecializedRetryStrategies
+} from './advanced-error-recovery';
+
+export { CircuitState } from './circuit-breaker';
 
 // Rate Limiting - optional security feature
 export type {
