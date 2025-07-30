@@ -5,7 +5,7 @@
  * in the JsonPlaceholder Client Library for production usage.
  */
 
-const { JsonPlaceholderClient } = require('../dist/index');
+const { JsonPlaceholderClient, DataSanitizer } = require('../dist/index');
 
 async function securityExample() {
   console.log('🔒 Security Configuration Example\n');
@@ -40,8 +40,79 @@ async function securityExample() {
     }
   }
 
-  // Demo 2: Conservative Security Settings
-  console.log('\n🛡️  Demo 2: Conservative Security Settings');
+  // Demo 2: Data Sanitization
+  console.log('\n🧹 Demo 2: Data Sanitization');
+  
+  const clientWithSanitization = new JsonPlaceholderClient('https://jsonplaceholder.typicode.com', {
+    securityConfig: {
+      sanitization: {
+        enabled: true,
+        stripHtml: true,
+        trimWhitespace: true,
+        maxStringLength: 1000
+      }
+    }
+  });
+
+  // Test with potentially dangerous data
+  const maliciousData = {
+    title: '<script>alert("XSS Attack!")</script>My Safe Post',
+    body: '  This post contains javascript:alert("XSS") and should be cleaned  ',
+    userId: 1
+  };
+
+  console.log('   🔍 Original data:', JSON.stringify(maliciousData, null, 2));
+  
+  const sanitizedData = clientWithSanitization.sanitizeRequestData(maliciousData);
+  console.log('   ✅ Sanitized data:', JSON.stringify(sanitizedData, null, 2));
+  
+  // Check if data is dangerous
+  const isDangerous = clientWithSanitization.isDangerousData(maliciousData);
+  console.log(`   🚨 Original data is dangerous: ${isDangerous}`);
+  
+  const isSafeSanitized = clientWithSanitization.isDangerousData(sanitizedData);
+  console.log(`   ✅ Sanitized data is safe: ${!isSafeSanitized}`);
+
+  // Demo 3: Standalone Data Sanitizer
+  console.log('\n🛡️  Demo 3: Standalone Data Sanitizer');
+  
+  const sanitizer = new DataSanitizer({
+    enabled: true,
+    stripHtml: true,
+    maxStringLength: 100,
+    blockedPatterns: [
+      /<script[^>]*>.*?<\/script>/gis,
+      /javascript:\s*/gi,
+      /on\w+\s*=/gi
+    ]
+  });
+
+  const testData = [
+    'Normal safe text',
+    '<script>alert("XSS")</script>',
+    'javascript:alert("XSS")',
+    'onclick="alert(\'XSS\')"',
+    '   Whitespace text   ',
+    'a'.repeat(150) // Long string
+  ];
+
+  console.log('   Testing various inputs:');
+  testData.forEach((input, index) => {
+    const result = sanitizer.sanitize(input);
+    const truncatedInput = input.length > 50 ? input.substring(0, 50) + '...' : input;
+    console.log(`   ${index + 1}. Input:  "${truncatedInput}"`);
+    console.log(`      Output: "${result.sanitized}"`);
+    if (result.warnings.length > 0) {
+      console.log(`      Warnings: ${result.warnings.join(', ')}`);
+    }
+    if (result.blocked.length > 0) {
+      console.log(`      Blocked: ${result.blocked.join(', ')}`);
+    }
+    console.log('');
+  });
+
+  // Demo 4: Conservative Security Settings
+  console.log('🛡️  Demo 4: Ultra-Secure Configuration');
   
   const ultraSecureClient = new JsonPlaceholderClient('https://jsonplaceholder.typicode.com', {
     securityConfig: {
@@ -50,54 +121,48 @@ async function securityExample() {
       validateStatus: (status) => {
         // Very strict - only 200 OK
         return status === 200;
+      },
+      sanitization: {
+        enabled: true,
+        stripHtml: true,
+        trimWhitespace: true,
+        maxStringLength: 500,
+        allowedTags: [], // No HTML tags allowed
+        blockedPatterns: [
+          /<[^>]*>/g,           // Block ALL HTML tags
+          /javascript:/gi,
+          /data:/gi,
+          /vbscript:/gi
+        ]
       }
     }
   });
 
   try {
-    console.log('   Making request with ultra-secure settings...');
-    const posts = await ultraSecureClient.getPosts();
-    console.log(`   ✅ Retrieved ${posts.length} posts with strict security settings`);
+    console.log('   Making ultra-secure request...');
+    const users = await ultraSecureClient.getUsers();
+    const sanitizedUsers = ultraSecureClient.sanitizeResponseData(users.slice(0, 2));
+    console.log(`   ✅ Retrieved and sanitized ${sanitizedUsers.length} users with ultra-secure settings`);
+    console.log('   🔒 Security features active:');
+    console.log('      • 3-second timeout protection');
+    console.log('      • Zero redirects allowed');
+    console.log('      • Only 200 status accepted');
+    console.log('      • All HTML tags stripped');
+    console.log('      • All dangerous patterns blocked');
+    console.log('      • 500 character limit enforced');
   } catch (error) {
     console.log(`   ⚠️  Ultra-secure request failed: ${error.message}`);
   }
 
-  // Demo 3: Production-Ready Settings
-  console.log('\n🏭 Demo 3: Production-Ready Settings');
-  
-  const productionClient = new JsonPlaceholderClient('https://jsonplaceholder.typicode.com', {
-    securityConfig: {
-      timeout: 8000,        // Reasonable timeout for production
-      maxRedirects: 2,      // Limited but not zero redirects
-      validateStatus: (status) => {
-        // Accept 2xx and 304 (not modified) responses
-        return (status >= 200 && status < 300) || status === 304;
-      }
-    },
-    loggerConfig: {
-      level: 'warn'         // Only log warnings and errors in production
-    }
-  });
-
-  try {
-    console.log('   Making request with production-ready settings...');
-    const users = await productionClient.getUsers();
-    console.log(`   ✅ Retrieved ${users.length} users with production settings`);
-    console.log('   🔒 Security features active:');
-    console.log('      • 8-second timeout protection');
-    console.log('      • Maximum 2 redirects allowed');
-    console.log('      • Strict status code validation');
-    console.log('      • Production logging level');
-  } catch (error) {
-    console.log(`   ❌ Production request failed: ${error.message}`);
-  }
-
   console.log('\n✨ Security configuration example completed!\n');
-  console.log('💡 Key Benefits:');
-  console.log('   • Prevents hanging requests');
+  console.log('💡 Key Security Benefits:');
+  console.log('   • Prevents hanging requests with timeouts');
   console.log('   • Protects against redirect loops');
   console.log('   • Validates response status codes');
-  console.log('   • Configurable for different environments');
+  console.log('   • Sanitizes request/response data');
+  console.log('   • Blocks XSS and injection attacks');
+  console.log('   • Configurable for different security levels');
+  console.log('   • Production-ready with sensible defaults');
 }
 
 // Run the example

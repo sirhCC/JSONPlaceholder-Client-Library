@@ -52,8 +52,13 @@ export type {
   InterceptorOptions,
   RequestConfig,
   ResponseData,
-  SecurityConfig
+  SecurityConfig,
+  SanitizationConfig,
+  SanitizationResult
 } from './types';
+
+// Data Sanitization - optional security feature
+export { DataSanitizer, defaultSanitizationConfig } from './sanitization';
 
 // Performance monitoring - optional feature
 export type {

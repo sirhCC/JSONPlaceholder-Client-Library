@@ -121,6 +121,9 @@ export interface SecurityConfig {
   validateStatus?: (status: number) => boolean; // Custom status validation
 }
 
+// Data Sanitization Types (re-exported from sanitization module)
+export type { SanitizationConfig, SanitizationResult } from './sanitization';
+
 // Cache Configuration Types
 export interface CacheConfig {
   enabled: boolean;
