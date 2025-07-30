@@ -124,3 +124,18 @@ export {
   DeveloperTools,
   DeveloperFriendlyError
 } from './developer-tools';
+
+// Validation - security feature
+export type {
+  ValidationRule,
+  ValidationSchema,
+  ValidationResult,
+  ValidationConfig
+} from './types';
+
+export {
+  ValidationRules,
+  RequestValidator,
+  CommonSchemas,
+  ValidationHelpers
+} from './validation';

@@ -55,6 +55,7 @@ import {
 } from './developer-tools';
 import { DataSanitizer, SanitizationConfig } from './sanitization';
 import { RateLimiter, RateLimitResult, RateLimitAnalytics, RateLimitingError } from './rate-limiter';
+import { RequestValidator, ValidationHelpers, ValidationResult } from './validation';
 
 const defaultApiUrl = 'https://jsonplaceholder.typicode.com';
 
@@ -1273,5 +1274,63 @@ export class JsonPlaceholderClient {
       });
     }
     console.log('=====================================\n');
+  }
+
+  // ===== REQUEST VALIDATION METHODS =====
+
+  /**
+   * Validate data using JSONPlaceholder schemas
+   */
+  validatePost(data: any): ValidationResult {
+    return ValidationHelpers.validatePost(data);
+  }
+
+  /**
+   * Validate comment data
+   */
+  validateComment(data: any): ValidationResult {
+    return ValidationHelpers.validateComment(data);
+  }
+
+  /**
+   * Validate user data
+   */
+  validateUser(data: any): ValidationResult {
+    return ValidationHelpers.validateUser(data);
+  }
+
+  /**
+   * Validate search parameters
+   */
+  validateSearchParams(data: any): ValidationResult {
+    return ValidationHelpers.validateSearchParams(data);
+  }
+
+  /**
+   * Check if data is safe for API requests
+   */
+  isSafeForRequest(data: any): boolean {
+    return ValidationHelpers.isSafeForRequest(data);
+  }
+
+  /**
+   * Sanitize data for safe API usage
+   */
+  sanitizeForRequest(data: any): any {
+    return ValidationHelpers.sanitizeForRequest(data);
+  }
+
+  /**
+   * Create a secure validator instance
+   */
+  createSecureValidator(): RequestValidator {
+    return ValidationHelpers.createSecureValidator();
+  }
+
+  /**
+   * Create a lenient validator instance
+   */
+  createLenientValidator(): RequestValidator {
+    return ValidationHelpers.createLenientValidator();
   }
 }

@@ -321,3 +321,34 @@ export interface RateLimitConfig {
   /** Custom headers to include rate limit info */
   includeHeaders: boolean;
 }
+
+// Validation types
+export interface ValidationRule {
+  name: string;
+  validate: (value: any) => boolean;
+  message: string;
+  sanitize?: (value: any) => any;
+}
+
+export interface ValidationSchema {
+  [key: string]: ValidationRule[];
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  errors: ValidationError[];
+  sanitizedData?: any;
+  warnings: string[];
+}
+
+export interface ValidationConfig {
+  strictMode?: boolean;
+  autoSanitize?: boolean;
+  maxDepth?: number;
+  allowUnknownFields?: boolean;
+  sanitizationConfig?: {
+    enabled: boolean;
+    strictMode: boolean;
+    customPatterns?: RegExp[];
+  };
+}
