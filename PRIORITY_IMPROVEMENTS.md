@@ -93,14 +93,14 @@ Based on thorough analysis of the JSONPlaceholder Client Library codebase, here 
 
 ## Priority 4: 🔒 Production Security & Reliability
 
-**Status:** 🟡 **IN PROGRESS - 2/5 ITEMS COMPLETE**
+**Status:** 🟡 **IN PROGRESS - 3/5 ITEMS COMPLETE**
 
 **Issue:** Library needs enhanced security features and reliability improvements for enterprise usage.
 
 **Missing Features:**
 
 - ~~No request/response data sanitization~~ ✅ **IMPLEMENTED**
-- Missing rate limiting protection
+- ~~Missing rate limiting protection~~ ✅ **IMPLEMENTED**
 - No CORS handling guidance
 - ~~Limited request timeout configuration~~ ✅ **ENHANCED**
 - No request cancellation mechanism
@@ -109,17 +109,19 @@ Based on thorough analysis of the JSONPlaceholder Client Library codebase, here 
 
 - [x] ~~Implement request/response data sanitization~~ ✅ **COMPLETE**
 - [x] ~~Add comprehensive timeout and cancellation support (AbortController)~~ ✅ **ENHANCED TIMEOUT**
-- [ ] Add built-in rate limiting with configurable thresholds
+- [x] ~~Add built-in rate limiting with configurable thresholds~~ ✅ **COMPLETE**
 - [ ] Create security best practices documentation
 - [ ] Add request validation and sanitization helpers
 
 **Files Added/Modified:**
 
 - `src/sanitization.ts` - **NEW** Data sanitization utilities with configurable security patterns
-- `src/client.ts` - Enhanced with `SecurityConfig` interface and sanitization integration
-- `src/types.ts` - Added security and sanitization type exports
-- `src/index.ts` - Exported sanitization classes and types
+- `src/rate-limiter.ts` - **NEW** Advanced rate limiting system with token-bucket/sliding-window/fixed-window strategies
+- `src/client.ts` - Enhanced with `SecurityConfig` interface, sanitization integration, and rate limiting
+- `src/types.ts` - Added security, sanitization, and rate limiting type exports
+- `src/index.ts` - Exported sanitization classes, rate limiting features, and types
 - `src/__tests__/security.test.ts` - **NEW** Comprehensive security tests (16 tests passing)
+- `src/__tests__/rate-limiting.test.ts` - **NEW** Comprehensive rate limiting tests (20 tests passing)
 - `examples/security-configuration.js` - **NEW** Security configuration examples
 
 ---
