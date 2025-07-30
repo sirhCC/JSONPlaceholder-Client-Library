@@ -644,7 +644,7 @@ const getPosts = USE_NEW_CLIENT
 
 Need help with migration?
 
-- **Check examples**: [./examples/](./examples/)
+- **Check examples**: [./examples/](../examples/)
 - **Read troubleshooting**: [./TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
 - **Open GitHub issue**: Include your current implementation and migration goals
 - **Use discussions**: For architecture and best practices questions

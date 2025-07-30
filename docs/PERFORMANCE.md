@@ -629,9 +629,9 @@ By following the optimization strategies and best practices in this guide, you c
 
 For more performance tips, see:
 
-- [Bundle Optimization Guide](./docs/BUNDLE_OPTIMIZATION.md)
-- [API Reference](./docs/API_REFERENCE.md)
-- [Examples](./examples/)
+- [Bundle Optimization Guide](./BUNDLE_OPTIMIZATION.md)
+- [API Reference](./API_REFERENCE.md)
+- [Examples](../examples/)
 
 ---
 

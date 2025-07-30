@@ -834,8 +834,8 @@ Key takeaways:
 For more information, see:
 
 - [Troubleshooting Guide](./TROUBLESHOOTING.md)
-- [API Reference](./docs/API_REFERENCE.md)
-- [Examples](./examples/)
+- [API Reference](./API_REFERENCE.md)
+- [Examples](../examples/)
 
 ---
 

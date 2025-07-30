@@ -360,10 +360,15 @@ client.addResponseInterceptor((response) => {
 | Resource | Description |
 |----------|-------------|
 | 📖 **[API Reference](./docs/API_REFERENCE.md)** | Complete API documentation with examples |
-| 📦 **[Bundle Optimization](./BUNDLE_OPTIMIZATION.md)** | Tree-shaking and modular import guide |
+| 📦 **[Bundle Optimization](./docs/BUNDLE_OPTIMIZATION.md)** | Tree-shaking and modular import guide |
 | ⚛️ **[React Hooks Guide](./packages/react/README.md)** | React hooks documentation |
 | 🚀 **[Examples](./examples/README.md)** | Practical usage examples and tutorials |
 | 📋 **[Publishing Guide](./docs/PUBLISHING.md)** | NPM publishing instructions |
+| 🤝 **[Contributing Guide](./docs/CONTRIBUTING.md)** | Development setup and guidelines |
+| 🔧 **[Troubleshooting](./docs/TROUBLESHOOTING.md)** | Common issues and solutions |
+| 🚚 **[Migration Guide](./docs/MIGRATION.md)** | Migrate from other libraries |
+| 🚨 **[Error Handling](./docs/ERROR_HANDLING.md)** | Comprehensive error handling strategies |
+| 📊 **[Performance Guide](./docs/PERFORMANCE.md)** | Performance optimization and benchmarks |
 
 ---
 
@@ -592,6 +597,8 @@ We welcome contributions! Here's how to get started:
 3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
 4. **Push** to the branch (`git push origin feature/amazing-feature`)
 5. **Open** a Pull Request
+
+📖 **For detailed development guidelines, see [CONTRIBUTING.md](./docs/CONTRIBUTING.md)**
 
 ### 🎯 **Development Setup**
 

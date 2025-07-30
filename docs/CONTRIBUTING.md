@@ -367,9 +367,9 @@ Please email security issues to: [security@yourproject.com]
 
 ### Resources
 
-- **Documentation**: [docs/](./docs/)
-- **Examples**: [examples/](./examples/)
-- **API Reference**: [docs/API_REFERENCE.md](./docs/API_REFERENCE.md)
+- **Documentation**: [docs/](../docs/)
+- **Examples**: [examples/](../examples/)
+- **API Reference**: [API_REFERENCE.md](./API_REFERENCE.md)
 
 ### Community
 

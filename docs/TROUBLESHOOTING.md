@@ -491,8 +491,8 @@ Actual: Throws TypeError: Cannot read property 'data' of undefined
 
 - **GitHub Issues**: [https://github.com/sirhCC/client-library/issues](https://github.com/sirhCC/client-library/issues)
 - **Discussions**: [https://github.com/sirhCC/client-library/discussions](https://github.com/sirhCC/client-library/discussions)
-- **Documentation**: [./docs/README.md](./docs/README.md)
-- **Examples**: [./examples/](./examples/)
+- **Documentation**: [./README.md](./README.md)
+- **Examples**: [../examples/](../examples/)
 
 ### Emergency Workarounds
 
