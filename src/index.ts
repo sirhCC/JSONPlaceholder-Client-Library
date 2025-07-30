@@ -51,7 +51,8 @@ export type {
   ResponseErrorInterceptor,
   InterceptorOptions,
   RequestConfig,
-  ResponseData
+  ResponseData,
+  SecurityConfig
 } from './types';
 
 // Performance monitoring - optional feature
