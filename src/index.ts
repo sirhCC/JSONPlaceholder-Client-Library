@@ -139,3 +139,47 @@ export {
   CommonSchemas,
   ValidationHelpers
 } from './validation';
+
+// Bundle optimization and feature management
+export { 
+  FeatureManager, 
+  FeatureDetector, 
+  DEFAULT_FEATURES, 
+  CORE_FEATURES, 
+  PRODUCTION_FEATURES,
+  PRESETS 
+} from './features';
+
+// Lazy loading utilities
+export { 
+  LazyFeatureLoader,
+  lazyLoadPerformance,
+  lazyLoadValidation,
+  lazyLoadDeveloperTools,
+  lazyLoadRateLimiting,
+  lazyLoadErrorRecovery,
+  lazyLoadSecurity,
+  getOptimizedFeatureLoader
+} from './lazy-loading';
+
+// Cache compression
+export {
+  CacheCompressionManager,
+  CompressionFactory,
+  JSONCompressionStrategy,
+  DictionaryCompressionStrategy,
+  AdaptiveCompressionStrategy
+} from './cache-compression';
+
+// Request deduplication
+export {
+  RequestDeduplicationManager,
+  DeduplicatedJsonPlaceholderClient,
+  DeduplicationFactory
+} from './request-deduplication';
+
+// Intelligent prefetching
+export {
+  IntelligentPrefetchManager,
+  PrefetchingJsonPlaceholderClient
+} from './intelligent-prefetching';
