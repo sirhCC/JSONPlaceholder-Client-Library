@@ -52,6 +52,7 @@ import {
   ResponseInspection,
   CodeExample
 } from './developer-tools';
+import { DataSanitizer, SanitizationConfig } from './sanitization';
 
 const defaultApiUrl = 'https://jsonplaceholder.typicode.com';
 
@@ -59,6 +60,7 @@ export interface SecurityConfig {
   timeout?: number; // Request timeout in milliseconds (default: 10000)
   maxRedirects?: number; // Maximum number of redirects to follow (default: 5)
   validateStatus?: (status: number) => boolean; // Custom status validation
+  sanitization?: Partial<SanitizationConfig>; // Data sanitization settings
 }
 
 export interface ClientConfig {
@@ -82,6 +84,7 @@ export class JsonPlaceholderClient {
   private errorRecoveryManager: ErrorRecoveryManager;
   private errorRecoveryDashboard: ErrorRecoveryDashboard;
   private developerTools: DeveloperTools;
+  private dataSanitizer: DataSanitizer;
 
   constructor(baseURL: string = defaultApiUrl, config?: ClientConfig) {
     const securityConfig = {
@@ -108,6 +111,7 @@ export class JsonPlaceholderClient {
     this.errorRecoveryManager = new ErrorRecoveryManager(config?.errorRecoveryConfig);
     this.errorRecoveryDashboard = new ErrorRecoveryDashboard(this.errorRecoveryManager);
     this.developerTools = new DeveloperTools({ enabled: false, ...config?.devModeConfig }, this.logger);
+    this.dataSanitizer = new DataSanitizer(securityConfig.sanitization);
     this.setupDefaultInterceptors();
     this.setupPerformanceTracking();
     this.setupDeveloperInstrumentation();
@@ -706,6 +710,63 @@ export class JsonPlaceholderClient {
     fallbackOperations: (() => Promise<T>)[] = []
   ): Promise<T> {
     return this.errorRecoveryManager.execute(operation, fallbackOperations);
+  }
+
+  // Security and Data Sanitization Methods
+
+  /**
+   * Sanitize data before sending in requests
+   */
+  sanitizeRequestData<T>(data: T): T {
+    const result = this.dataSanitizer.sanitize(data);
+    
+    if (result.warnings.length > 0) {
+      this.logger.warn('Request data sanitization warnings:', result.warnings);
+    }
+    
+    if (result.blocked.length > 0) {
+      this.logger.warn('Request data sanitization blocked patterns:', result.blocked);
+    }
+    
+    return result.sanitized as T;
+  }
+
+  /**
+   * Sanitize response data for safe consumption
+   */
+  sanitizeResponseData<T>(data: T): T {
+    const result = this.dataSanitizer.sanitize(data);
+    
+    if (result.warnings.length > 0) {
+      this.logger.debug('Response data sanitization warnings:', result.warnings);
+    }
+    
+    if (result.blocked.length > 0) {
+      this.logger.warn('Response data sanitization blocked patterns:', result.blocked);
+    }
+    
+    return result.sanitized as T;
+  }
+
+  /**
+   * Check if data contains potentially dangerous content
+   */
+  isDangerousData(data: unknown): boolean {
+    return this.dataSanitizer.isDangerous(data);
+  }
+
+  /**
+   * Configure data sanitization settings
+   */
+  configureSanitization(config: Partial<SanitizationConfig>): void {
+    this.dataSanitizer.updateConfig(config);
+  }
+
+  /**
+   * Get current sanitization configuration
+   */
+  getSanitizationConfig(): SanitizationConfig {
+    return this.dataSanitizer.getConfig();
   }
 
   async getPosts(cacheOptions: CacheOptions = {}): Promise<Post[]> {
