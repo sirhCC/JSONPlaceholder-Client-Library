@@ -55,12 +55,19 @@ import {
 
 const defaultApiUrl = 'https://jsonplaceholder.typicode.com';
 
+export interface SecurityConfig {
+  timeout?: number; // Request timeout in milliseconds (default: 10000)
+  maxRedirects?: number; // Maximum number of redirects to follow (default: 5)
+  validateStatus?: (status: number) => boolean; // Custom status validation
+}
+
 export interface ClientConfig {
   cacheConfig?: Partial<CacheConfig>;
   loggerConfig?: Partial<LoggerConfig> | ILogger;
   performanceConfig?: Partial<PerformanceConfig>;
   errorRecoveryConfig?: Partial<ErrorRecoveryConfig>;
   devModeConfig?: Partial<DevModeConfig>;
+  securityConfig?: Partial<SecurityConfig>;
 }
 
 export class JsonPlaceholderClient {
@@ -77,9 +84,18 @@ export class JsonPlaceholderClient {
   private developerTools: DeveloperTools;
 
   constructor(baseURL: string = defaultApiUrl, config?: ClientConfig) {
+    const securityConfig = {
+      timeout: 10000,
+      maxRedirects: 5,
+      validateStatus: (status: number) => status >= 200 && status < 300,
+      ...config?.securityConfig
+    };
+
     this.client = axios.create({
       baseURL,
-      timeout: 10000,
+      timeout: securityConfig.timeout,
+      maxRedirects: securityConfig.maxRedirects,
+      validateStatus: securityConfig.validateStatus,
       headers: {
         'Content-Type': 'application/json',
       },
