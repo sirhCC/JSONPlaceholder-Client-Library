@@ -3,6 +3,23 @@
  * Provides enterprise-grade network security for API communications
  */
 
+export interface RequestOptions {
+  method?: string;
+  headers?: Record<string, string>;
+  body?: unknown;
+  timeout?: number;
+  rejectUnauthorized?: boolean;
+  secureProtocol?: string;
+  honorCipherOrder?: boolean;
+  ecdhCurve?: string;
+  cert?: Buffer | string;
+  key?: Buffer | string;
+  ca?: Buffer | Buffer[] | string | string[];
+  ciphers?: string;
+  checkServerIdentity?: (servername: string, cert: any) => Error | undefined;
+  [key: string]: unknown;
+}
+
 export interface TLSSecurityConfig {
   enabled: boolean;
   minTlsVersion: '1.2' | '1.3';
@@ -100,7 +117,7 @@ export class TLSSecurityManager {
   /**
    * Validate TLS configuration for a request
    */
-  validateTLSRequest(url: string, options: any = {}): TLSValidationResult {
+  validateTLSRequest(url: string, options: RequestOptions = {}): TLSValidationResult {
     const result: TLSValidationResult = {
       allowed: true,
       securityLevel: 'high',
@@ -444,7 +461,7 @@ export const TLSSecurityUtils = {
   /**
    * Generate secure request options
    */
-  createSecureRequestOptions(options: any = {}): any {
+  createSecureRequestOptions(options: RequestOptions = {}): RequestOptions {
     return {
       ...options,
       rejectUnauthorized: true,
