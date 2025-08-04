@@ -17,6 +17,8 @@ export interface ErrorRecoveryConfig {
   gracefulDegradation: boolean;
   fallbackStrategies: string[];
   monitoringEnabled: boolean;
+  monitoringInterval?: number; // In milliseconds, default 5000
+  disableIntervals?: boolean; // For testing purposes
 }
 
 /**
@@ -62,6 +64,7 @@ export class AdvancedErrorRecovery {
   private retryManager: RetryManager;
   private requestQueue: RequestQueue;
   private eventListeners: Map<ErrorRecoveryEvent, ErrorRecoveryEventListener[]> = new Map();
+  private monitoringIntervalId?: NodeJS.Timeout;
   private stats = {
     totalRequests: 0,
     successfulRequests: 0,
@@ -183,12 +186,12 @@ export class AdvancedErrorRecovery {
    * Setup event handlers for monitoring
    */
   private setupEventHandlers(): void {
-    if (!this.config.monitoringEnabled) return;
+    if (!this.config.monitoringEnabled || this.config.disableIntervals) return;
 
     // Monitor circuit breaker state changes
     // Note: This would require the circuit breaker to emit events
     // For now, we'll poll the state periodically
-    setInterval(() => {
+    const intervalId = setInterval(() => {
       const stats = this.circuitBreakerManager.getAllStats();
       Object.entries(stats).forEach(([endpoint, stat]) => {
         if (stat.state === CircuitState.OPEN) {
@@ -197,7 +200,10 @@ export class AdvancedErrorRecovery {
           this.emitEvent('circuit-closed', { endpoint, stat });
         }
       });
-    }, 5000);
+    }, this.config.monitoringInterval || 5000);
+
+    // Store interval ID for cleanup
+    this.monitoringIntervalId = intervalId;
   }
 
   /**
@@ -335,6 +341,19 @@ export class AdvancedErrorRecovery {
   }
 
   /**
+   * Cleanup resources and stop intervals
+   */
+  destroy(): void {
+    if (this.monitoringIntervalId) {
+      clearInterval(this.monitoringIntervalId);
+      this.monitoringIntervalId = undefined;
+    }
+    
+    // Clear event listeners
+    this.eventListeners.clear();
+  }
+
+  /**
    * Update configuration
    */
   updateConfig(newConfig: Partial<ErrorRecoveryConfig>): void {
@@ -459,7 +478,8 @@ export class ErrorRecoveryFactory {
       },
       gracefulDegradation: true,
       fallbackStrategies: ['cache'],
-      monitoringEnabled: true
+      monitoringEnabled: true,
+      disableIntervals: true // Disable intervals for testing
     });
   }
 
