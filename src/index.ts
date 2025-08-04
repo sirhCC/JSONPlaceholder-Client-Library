@@ -237,3 +237,18 @@ export {
   ConnectionPoolManager,
   NetworkOptimizedJsonPlaceholderClient
 } from './network-optimization';
+
+// WebSocket Real-Time Support - Major Performance Improvement #5
+export type {
+  WebSocketConfig,
+  RealtimeEvent,
+  RealtimeSubscription,
+  RealtimeStats,
+  ConnectionState,
+  QueuedMessage
+} from './websocket-realtime';
+export {
+  WebSocketRealtimeManager,
+  RealtimeJsonPlaceholderClient,
+  RealtimeFactory
+} from './websocket-realtime';
