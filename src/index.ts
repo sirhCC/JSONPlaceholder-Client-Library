@@ -186,6 +186,18 @@ export {
   DeduplicationFactory
 } from './request-deduplication';
 
+// Advanced Request Deduplication - Major Performance Improvement #4
+export type {
+  DeduplicationConfig,
+  DeduplicationStats,
+  RequestPattern
+} from './request-deduplication-advanced';
+export {
+  RequestDeduplicationManager as AdvancedRequestDeduplicationManager,
+  DeduplicatedJsonPlaceholderClient as AdvancedDeduplicatedClient,
+  DeduplicationFactory as AdvancedDeduplicationFactory
+} from './request-deduplication-advanced';
+
 // Intelligent prefetching
 export {
   IntelligentPrefetchManager,
