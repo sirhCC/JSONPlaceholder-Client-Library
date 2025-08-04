@@ -191,3 +191,37 @@ export {
   IntelligentPrefetchManager,
   PrefetchingJsonPlaceholderClient
 } from './intelligent-prefetching';
+
+// Batch Operations - Major Performance Improvement #1
+export type {
+  BatchConfig,
+  BatchRequest,
+  BatchStats
+} from './batch-operations';
+export {
+  BatchOperationsManager,
+  BatchOptimizedJsonPlaceholderClient
+} from './batch-operations';
+
+// Streaming Optimization - Major Performance Improvement #2
+export type {
+  StreamConfig,
+  VirtualScrollConfig,
+  StreamStats
+} from './streaming-optimization';
+export {
+  StreamingDataManager,
+  StreamingJsonPlaceholderClient
+} from './streaming-optimization';
+
+// Network Optimization - Major Performance Improvement #3
+export type {
+  ConnectionPoolConfig,
+  NetworkOptimizationConfig,
+  ConnectionStats,
+  RequestMetrics
+} from './network-optimization';
+export {
+  ConnectionPoolManager,
+  NetworkOptimizedJsonPlaceholderClient
+} from './network-optimization';
