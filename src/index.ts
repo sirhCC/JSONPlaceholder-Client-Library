@@ -252,3 +252,43 @@ export {
   RealtimeJsonPlaceholderClient,
   RealtimeFactory
 } from './websocket-realtime';
+
+// Security Managers - Enhanced Security Features
+export type {
+  MemorySecurityConfig,
+  SensitiveDataRef,
+  MemorySecurityStats
+} from './memory-security';
+export {
+  MemorySecurityManager,
+  SecureString,
+  defaultMemorySecurityManager,
+  MemorySecurityUtils
+} from './memory-security';
+
+export type {
+  TLSSecurityConfig,
+  TLSConnectionInfo,
+  TLSSecurityStats,
+  TLSValidationResult,
+  TLSSecurityReport
+} from './tls-security';
+export {
+  TLSSecurityManager,
+  defaultTLSSecurityManager,
+  TLSSecurityUtils
+} from './tls-security';
+
+export type {
+  CSRFProtectionConfig,
+  CSRFToken,
+  CSRFValidationResult,
+  CSRFSecurityStats,
+  CSRFSecurityReport,
+  CSRFCookieConfig
+} from './csrf-protection';
+export {
+  CSRFProtectionManager,
+  defaultCSRFProtectionManager,
+  CSRFProtectionUtils
+} from './csrf-protection';
