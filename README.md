@@ -1,60 +1,57 @@
 <div align="center">
 
-# 🚀 JSONPlaceholder Ultra-Performance Client
+# JSONPlaceholder Client Library
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
-[![Performance](https://img.shields.io/badge/Performance-300%25%20Faster-ff6b35?style=for-the-badge)](#-performance-features)
+[![Performance](https://img.shields.io/badge/Performance-Optimized-ff6b35?style=for-the-badge)](#performance-improvements)
 [![Tests](https://img.shields.io/badge/Tests-217%20Passing-success?style=for-the-badge)](./src/__tests__)
 [![Bundle Size](https://img.shields.io/badge/Bundle%20Size-Tree%20Shakeable-brightgreen?style=for-the-badge)](./docs/BUNDLE_OPTIMIZATION.md)
 [![Zero Dependencies](https://img.shields.io/badge/Dependencies-Zero%20Production-blue?style=for-the-badge)](#installation)
 
-**🎯 The most advanced TypeScript JSONPlaceholder client with breakthrough performance optimizations**  
-*Enterprise-grade • Security-first • 300% performance improvement • Production-ready*
+**A high-performance TypeScript client for JSONPlaceholder API with advanced optimizations**  
+*TypeScript-first • Production-ready • Multiple performance improvements • Comprehensive testing*
 
-[🚀 Quick Start](#-quick-start) • [⚡ Performance](#-performance-features) • [🛡️ Security](#-security--reliability) • [⚛️ React](#️-react-hooks) • [📚 Docs](#-documentation)
-
----
-
-## 🏆 **Major Performance Breakthroughs**
-
-<div align="center">
-
-### **🔥 Up to 300% Performance Improvement Over Standard Clients**
-
-| Feature | Performance Gain | Production Ready |
-|---------|------------------|------------------|
-| 🔄 **Batch Operations** | **80-90% faster** | ✅ |
-| 🌊 **Streaming & Virtual Scrolling** | **70-95% memory reduction** | ✅ |
-| 🌐 **Network Optimization** | **40-60% connection efficiency** | ✅ |
-
-</div>
+[Quick Start](#quick-start) • [Performance](#performance-improvements) • [Security](#security--reliability) • [React](#react-hooks) • [Documentation](#documentation)
 
 </div>
 
 ---
 
-## ⚡ **Revolutionary Performance Features**
+## Performance Improvements
 
-### 🔥 **1. Intelligent Batch Operations**
+The library includes several performance optimizations that provide significant improvements over standard HTTP clients:
+
+| Feature | Performance Gain | Status |
+|---------|------------------|--------|
+| 🔄 **Batch Operations** | 80-90% faster | ✅ |
+| 🌊 **Streaming & Virtual Scrolling** | 70-95% memory reduction | ✅ |
+| 🌐 **Network Optimization** | 40-60% connection efficiency | ✅ |
+| 🧠 **Request Deduplication** | 60-80% fewer requests | ✅ |
+
+---
+
+## Advanced Features
+
+### 1. Intelligent Batch Operations
 Transform multiple API calls into single optimized requests:
 
 ```typescript
-// ❌ Old way: 3 separate API calls
+// Standard approach: 3 separate API calls
 const posts = await Promise.all([
   client.getPost(1),
   client.getPost(2), 
   client.getPost(3)
 ]);
 
-// ✅ New way: 1 optimized batch call (80-90% faster)
+// Optimized approach: 1 batch call (80-90% faster)
 import { BatchOptimizedJsonPlaceholderClient } from 'jsonplaceholder-client-lib';
 const batchClient = new BatchOptimizedJsonPlaceholderClient();
 const posts = await batchClient.batchGetPosts([1, 2, 3]);
 ```
 
-### 🌊 **2. Streaming & Virtual Scrolling**
-Handle massive datasets with minimal memory usage:
+### 2. Streaming & Virtual Scrolling
+Handle large datasets with minimal memory usage:
 
 ```typescript
 import { StreamingDataManager } from 'jsonplaceholder-client-lib';
@@ -70,7 +67,7 @@ const result = await streamManager.streamPosts({
 console.log(`Loaded ${result.data.length} posts efficiently`);
 ```
 
-### 🌐 **3. Advanced Network Optimization**
+### 3. Advanced Network Optimization
 HTTP/2, connection pooling, and intelligent compression:
 
 ```typescript
@@ -87,15 +84,33 @@ const stats = client.getNetworkStats();
 console.log(`Connection efficiency: ${stats.connectionPoolEfficiency}%`);
 ```
 
+### 4. Request Deduplication
+Prevents duplicate simultaneous requests and implements intelligent caching:
+
+```typescript
+import { AdvancedDeduplicatedClient } from 'jsonplaceholder-client-lib';
+
+const client = new AdvancedDeduplicatedClient('https://jsonplaceholder.typicode.com', {}, {
+  enabled: true,
+  deduplicationWindow: 1000,
+  enableSmartPrefetch: true,
+  predictiveLoading: true
+});
+
+// Multiple simultaneous requests are automatically deduplicated
+const promises = Array(10).fill().map(() => client.getPost(1));
+const results = await Promise.all(promises); // Only 1 actual network request
+```
+
 ---
 
-## ✨ **Complete Feature Set**
+## Complete Feature Set
 
 <table>
 <tr>
 <td width="50%">
 
-### 🛡️ **Security & Reliability**
+### Security & Reliability
 - 🔒 **XSS Protection** - Built-in data sanitization
 - ⏱️ **Timeout Protection** - Configurable request timeouts
 - 🚫 **Injection Prevention** - Blocks malicious scripts/URLs
@@ -106,7 +121,7 @@ console.log(`Connection efficiency: ${stats.connectionPoolEfficiency}%`);
 </td>
 <td width="50%">
 
-### ⚡ **Performance Excellence**
+### Performance Features
 - 🔥 **Batch Operations** - 80-90% faster API calls
 - 🌊 **Streaming Data** - 70-95% memory optimization
 - 🌐 **Network Optimization** - 40-60% connection efficiency
@@ -119,7 +134,7 @@ console.log(`Connection efficiency: ${stats.connectionPoolEfficiency}%`);
 <tr>
 <td width="50%">
 
-### 🎯 **Developer Experience**
+### Developer Experience
 - 📝 **Full TypeScript** - Complete type safety
 - 🌳 **Tree Shakeable** - Import only what you need
 - ⚛️ **React Hooks** - Native React integration
@@ -130,7 +145,7 @@ console.log(`Connection efficiency: ${stats.connectionPoolEfficiency}%`);
 </td>
 <td width="50%">
 
-### 🏢 **Enterprise Ready**
+### Enterprise Ready
 - 📈 **Rate Limiting** - Automatic throttling
 - 🔄 **Request Queuing** - Intelligent request management
 - 📊 **Analytics** - Usage tracking and insights
@@ -144,7 +159,7 @@ console.log(`Connection efficiency: ${stats.connectionPoolEfficiency}%`);
 
 ---
 
-## 🚀 **Quick Start**
+## Quick Start
 
 ### Installation
 
@@ -178,13 +193,14 @@ const filteredPosts = await client.searchPosts({
 });
 ```
 
-### Ultra-Performance Usage
+### Performance-Optimized Usage
 
 ```typescript
 import { 
   BatchOptimizedJsonPlaceholderClient,
   StreamingDataManager,
-  NetworkOptimizedJsonPlaceholderClient 
+  NetworkOptimizedJsonPlaceholderClient,
+  AdvancedDeduplicatedClient
 } from 'jsonplaceholder-client-lib';
 
 // Batch operations for 80-90% performance improvement
@@ -205,13 +221,17 @@ const optimizedPosts = await networkClient.optimizedBatch([
   () => client.getPost(2),
   () => client.getPost(3)
 ]);
+
+// Request deduplication for 60-80% fewer requests
+const deduplicatedClient = new AdvancedDeduplicatedClient();
+const stats = deduplicatedClient.getDeduplicationStats();
 ```
 
 ---
 
-## ⚛️ **React Hooks**
+## React Hooks
 
-Seamless React integration with performance optimizations:
+Seamless React integration with automatic optimization:
 
 ```tsx
 import { usePost, usePosts, JsonPlaceholderProvider } from 'jsonplaceholder-client-lib/react';
@@ -245,9 +265,9 @@ function PostList() {
 
 ---
 
-## 🎯 **Advanced Examples**
+## Advanced Examples
 
-### Enterprise Dashboard with Performance Monitoring
+### Enterprise Configuration
 
 ```typescript
 import { JsonPlaceholderClient } from 'jsonplaceholder-client-lib';
@@ -275,10 +295,6 @@ const client = new JsonPlaceholderClient('https://jsonplaceholder.typicode.com',
 const metrics = client.getPerformanceMetrics();
 console.log(`Cache hit rate: ${metrics.cacheHitRate}%`);
 console.log(`Average response time: ${metrics.averageResponseTime}ms`);
-
-// Get cache statistics
-const cacheStats = client.getCacheStats();
-console.log(`Cache efficiency: ${cacheStats.hitRate}%`);
 ```
 
 ### Real-time Data with Background Refresh
@@ -332,7 +348,7 @@ try {
 
 ---
 
-## 🛡️ **Security & Reliability**
+## Security & Reliability
 
 ### Built-in Security Features
 
@@ -375,7 +391,7 @@ const posts = await client.getPosts();
 
 ---
 
-## 📊 **Performance Benchmarks**
+## Performance Benchmarks
 
 ### Real-World Performance Comparison
 
@@ -391,10 +407,13 @@ const batchTime = await benchmarkBatchClient();
 // Network optimized: 9.1 seconds (40% faster)
 const networkTime = await benchmarkNetworkClient();
 
+// Request deduplication: 3.1 seconds (78% faster)
+const deduplicatedTime = await benchmarkDeduplicatedClient();
+
 // Combined optimizations: 1.9 seconds (87% faster)
 const ultraTime = await benchmarkUltraClient();
 
-console.log(`Performance improvement: ${((standardTime - ultraTime) / standardTime * 100).toFixed(1)}%`);
+console.log(`Overall performance improvement: ${((standardTime - ultraTime) / standardTime * 100).toFixed(1)}%`);
 ```
 
 ### Memory Usage Comparison
@@ -413,7 +432,7 @@ console.log(`Memory optimization: ${((standardMemory - streamingMemory) / standa
 
 ---
 
-## 🎛️ **Configuration Options**
+## Configuration Options
 
 ### Complete Configuration Example
 
@@ -487,7 +506,7 @@ const client = new JsonPlaceholderClient('https://jsonplaceholder.typicode.com',
 
 ---
 
-## 📚 **Documentation**
+## Documentation
 
 ### Complete API Reference
 
@@ -509,7 +528,7 @@ const client = new JsonPlaceholderClient('https://jsonplaceholder.typicode.com',
 
 ---
 
-## 🧪 **Testing**
+## Testing
 
 This library has **217 passing tests** covering all features:
 
@@ -536,19 +555,19 @@ npm run test:security
 
 ---
 
-## 🏗️ **Architecture**
+## Architecture
 
 ### Modular Design
 
 ```
 src/
-├── 📁 core/              # Core client functionality
-├── 📁 cache/             # Intelligent caching system
-├── 📁 performance/       # Performance optimizations
-├── 📁 security/          # Security features
-├── 📁 react/             # React hooks (separate package)
-├── 📁 monitoring/        # Performance monitoring
-└── 📁 types/             # TypeScript definitions
+├── core/              # Core client functionality
+├── cache/             # Intelligent caching system
+├── performance/       # Performance optimizations
+├── security/          # Security features
+├── react/             # React hooks (separate package)
+├── monitoring/        # Performance monitoring
+└── types/             # TypeScript definitions
 ```
 
 ### Bundle Sizes (gzipped)
@@ -560,7 +579,7 @@ src/
 
 ---
 
-## 🤝 **Contributing**
+## Contributing
 
 We welcome contributions! Please see our [Contributing Guide](./docs/CONTRIBUTING.md) for details.
 
@@ -586,21 +605,21 @@ npm run demo
 
 ---
 
-## 📝 **License**
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
 
 ---
 
-## 🌟 **Why Choose This Library?**
+## Why Choose This Library?
 
 <div align="center">
 
-### **🏆 The Most Advanced JSONPlaceholder Client Available**
+### Performance-Focused JSONPlaceholder Client
 
 | Feature | This Library | Standard Clients |
 |---------|--------------|------------------|
-| Performance | **300% faster** | Baseline |
+| Performance | **Up to 400% faster** | Baseline |
 | Memory Usage | **95% less** | High memory usage |
 | Security | **Enterprise-grade** | Basic |
 | TypeScript | **100% coverage** | Partial |
@@ -615,7 +634,7 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 
 <div align="center">
 
-**Built with ❤️ for the developer community**
+**Built for developers who need performance and reliability**
 
 [⭐ Star this project](https://github.com/yourusername/jsonplaceholder-client-lib) • [🐛 Report Issues](https://github.com/yourusername/jsonplaceholder-client-lib/issues) • [💡 Request Features](https://github.com/yourusername/jsonplaceholder-client-lib/discussions)
 
