@@ -5,7 +5,7 @@
  * including input validation, schema validation, and sanitization helpers.
  */
 
-import { DataSanitizer } from './sanitization';
+import { DataSanitizer, SanitizationResult } from './sanitization';
 
 // ===== VALIDATION TYPES =====
 
@@ -369,7 +369,7 @@ export class RequestValidator {
   /**
    * Sanitize data using the configured sanitizer
    */
-  sanitize(data: any): any {
+  sanitize<T>(data: T): SanitizationResult {
     return this.sanitizer.sanitize(data);
   }
 
@@ -648,9 +648,9 @@ export class ValidationHelpers {
   /**
    * Sanitize data for safe API usage
    */
-  static sanitizeForRequest(data: any): any {
+  static sanitizeForRequest<T>(data: T): T {
     const validator = this.createSecureValidator();
     const result = validator.sanitize(data);
-    return result.sanitized || data;
+    return (result.sanitized || data) as T;
   }
 }
