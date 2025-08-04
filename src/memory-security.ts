@@ -11,9 +11,9 @@ export interface MemorySecurityConfig {
   trackSensitiveAllocations: boolean;
 }
 
-export interface SensitiveDataRef {
+export interface SensitiveDataRef<T = unknown> {
   id: string;
-  data: any;
+  data: T;
   timestamp: number;
   type: 'string' | 'object' | 'array';
   cleanupCallback?: () => void;
@@ -32,7 +32,7 @@ export interface MemorySecurityStats {
  */
 export class MemorySecurityManager {
   private config: MemorySecurityConfig;
-  private sensitiveRefs = new Map<string, SensitiveDataRef>();
+  private sensitiveRefs = new Map<string, SensitiveDataRef<unknown>>();
   private cleanupTimer?: NodeJS.Timeout;
   private stats: MemorySecurityStats;
   private crypto: Crypto | null = null;
@@ -86,9 +86,9 @@ export class MemorySecurityManager {
   /**
    * Register sensitive data for automatic cleanup
    */
-  registerSensitiveData(data: any, type: 'string' | 'object' | 'array' = 'object'): string {
+  registerSensitiveData<T = unknown>(data: T, type: 'string' | 'object' | 'array' = 'object'): string {
     const id = this.generateSecureId();
-    const ref: SensitiveDataRef = {
+    const ref: SensitiveDataRef<T> = {
       id,
       data,
       timestamp: Date.now(),
@@ -149,27 +149,35 @@ export class MemorySecurityManager {
   /**
    * Scan and clean sensitive data from objects
    */
-  sanitizeObject(obj: any): any {
+  sanitizeObject<T>(obj: T): T {
     if (!obj || typeof obj !== 'object') {
       return obj;
     }
 
-    const sanitized = Array.isArray(obj) ? [...obj] : { ...obj };
+    // Handle arrays
+    if (Array.isArray(obj)) {
+      const sanitizedArray = obj.map(item => this.sanitizeObject(item));
+      return sanitizedArray as T;
+    }
+
+    // Handle objects
+    const sanitized = { ...obj } as Record<string, unknown>;
 
     for (const key in sanitized) {
       if (this.isSensitiveField(key)) {
         // Register for cleanup and replace with redacted value
         if (sanitized[key]) {
-          const valueType = typeof sanitized[key];
+          const value = sanitized[key];
+          const valueType = typeof value;
           let dataType: 'string' | 'object' | 'array' = 'object';
           
           if (valueType === 'string') {
             dataType = 'string';
-          } else if (Array.isArray(sanitized[key])) {
+          } else if (Array.isArray(value)) {
             dataType = 'array';
           }
           
-          this.registerSensitiveData(sanitized[key], dataType);
+          this.registerSensitiveData(value, dataType);
           sanitized[key] = '[REDACTED]';
         }
       } else if (typeof sanitized[key] === 'object' && sanitized[key] !== null) {
@@ -177,7 +185,7 @@ export class MemorySecurityManager {
       }
     }
 
-    return sanitized;
+    return sanitized as T;
   }
 
   /**
@@ -248,14 +256,14 @@ export class MemorySecurityManager {
     }
   }
 
-  private securelyWipeData(data: any, type: string): void {
+  private securelyWipeData(data: unknown, type: string): void {
     if (!data) return;
 
     try {
       if (type === 'string' && typeof data === 'string') {
         this.securelyWipeString(data);
       } else if (type === 'object' && typeof data === 'object') {
-        this.securelyWipeObject(data);
+        this.securelyWipeObject(data as Record<string, unknown>);
       } else if (type === 'array' && Array.isArray(data)) {
         this.securelyWipeArray(data);
       }
@@ -277,27 +285,27 @@ export class MemorySecurityManager {
     }
   }
 
-  private securelyWipeObject(obj: any): void {
+  private securelyWipeObject(obj: Record<string, unknown>): void {
     for (const key in obj) {
       if (obj.hasOwnProperty(key)) {
         const value = obj[key];
         if (typeof value === 'string') {
           this.securelyWipeString(value);
         } else if (typeof value === 'object' && value !== null) {
-          this.securelyWipeObject(value);
+          this.securelyWipeObject(value as Record<string, unknown>);
         }
         delete obj[key];
       }
     }
   }
 
-  private securelyWipeArray(arr: any[]): void {
+  private securelyWipeArray(arr: unknown[]): void {
     for (let i = 0; i < arr.length; i++) {
       const value = arr[i];
       if (typeof value === 'string') {
         this.securelyWipeString(value);
       } else if (typeof value === 'object' && value !== null) {
-        this.securelyWipeObject(value);
+        this.securelyWipeObject(value as Record<string, unknown>);
       }
       arr[i] = null;
     }
