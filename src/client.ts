@@ -56,9 +56,9 @@ import {
 import { DataSanitizer, SanitizationConfig } from './sanitization';
 import { RateLimiter, RateLimitResult, RateLimitAnalytics, RateLimitingError } from './rate-limiter';
 import { RequestValidator, ValidationHelpers, ValidationResult } from './validation';
-import { MemorySecurityManager, MemorySecurityConfig, MemorySecurityStats } from './memory-security';
-import { TLSSecurityManager, TLSSecurityConfig, TLSValidationResult, TLSSecurityStats } from './tls-security';
-import { CSRFProtectionManager, CSRFProtectionConfig, CSRFValidationResult, CSRFSecurityStats, CSRFToken } from './csrf-protection';
+import { MemorySecurityManager, MemorySecurityConfig, MemorySecurityStats, SecureString } from './memory-security';
+import { TLSSecurityManager, TLSSecurityConfig, TLSValidationResult, TLSSecurityStats, TLSSecurityReport, RequestOptions } from './tls-security';
+import { CSRFProtectionManager, CSRFProtectionConfig, CSRFValidationResult, CSRFSecurityStats, CSRFToken, CSRFSecurityReport } from './csrf-protection';
 
 const defaultApiUrl = 'https://jsonplaceholder.typicode.com';
 
@@ -355,7 +355,12 @@ export class JsonPlaceholderClient {
       const url = config.url || '';
       
       // Validate TLS configuration
-      const tlsValidation = this.tlsSecurityManager.validateTLSRequest(url, config);
+      const requestOptions: RequestOptions = {
+        method: config.method,
+        headers: config.headers,
+        body: config.data
+      };
+      const tlsValidation = this.tlsSecurityManager.validateTLSRequest(url, requestOptions);
       if (!tlsValidation.allowed) {
         throw new Error(`TLS Security Error: ${tlsValidation.warnings.join(', ')}`);
       }
@@ -1401,7 +1406,7 @@ export class JsonPlaceholderClient {
   /**
    * Sanitize data for safe API usage
    */
-  sanitizeForRequest(data: any): any {
+  sanitizeForRequest<T>(data: T): T {
     return ValidationHelpers.sanitizeForRequest(data);
   }
 
@@ -1472,14 +1477,14 @@ export class JsonPlaceholderClient {
   /**
    * Create secure string that auto-cleans
    */
-  createSecureString(value: string, ttl?: number): any {
+  createSecureString(value: string, ttl?: number): SecureString {
     return this.memorySecurityManager.createSecureString(value, ttl);
   }
 
   /**
    * Sanitize object to remove sensitive data
    */
-  sanitizeObject(obj: any): any {
+  sanitizeObject<T>(obj: T): T {
     return this.memorySecurityManager.sanitizeObject(obj);
   }
 
@@ -1495,8 +1500,8 @@ export class JsonPlaceholderClient {
    */
   generateSecurityReport(): {
     memory: MemorySecurityStats;
-    tls: any;
-    csrf: any;
+    tls: TLSSecurityReport;
+    csrf: CSRFSecurityReport;
     timestamp: string;
     overallSecurityScore: number;
   } {
