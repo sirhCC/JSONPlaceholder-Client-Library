@@ -5,7 +5,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
 [![Performance](https://img.shields.io/badge/Performance-Optimized-ff6b35?style=for-the-badge)](#performance-improvements)
-[![Tests](https://img.shields.io/badge/Tests-217%20Passing-success?style=for-the-badge)](./src/__tests__)
+[![Tests](https://img.shields.io/badge/Tests-224%20Passing-success?style=for-the-badge)](./src/__tests__)
 [![Bundle Size](https://img.shields.io/badge/Bundle%20Size-Tree%20Shakeable-brightgreen?style=for-the-badge)](./docs/BUNDLE_OPTIMIZATION.md)
 [![Zero Dependencies](https://img.shields.io/badge/Dependencies-Zero%20Production-blue?style=for-the-badge)](#installation)
 
@@ -20,7 +20,7 @@
 
 ## Performance Improvements
 
-The library includes several performance optimizations that provide significant improvements over standard HTTP clients:
+The library includes **5 major performance optimizations** that provide significant improvements over standard HTTP clients:
 
 | Feature | Performance Gain | Status |
 |---------|------------------|--------|
@@ -28,6 +28,7 @@ The library includes several performance optimizations that provide significant 
 | 🌊 **Streaming & Virtual Scrolling** | 70-95% memory reduction | ✅ |
 | 🌐 **Network Optimization** | 40-60% connection efficiency | ✅ |
 | 🧠 **Request Deduplication** | 60-80% fewer requests | ✅ |
+| ⚡ **WebSocket Real-Time** | Live data synchronization | ✅ |
 
 ---
 
@@ -102,6 +103,37 @@ const promises = Array(10).fill().map(() => client.getPost(1));
 const results = await Promise.all(promises); // Only 1 actual network request
 ```
 
+### 5. WebSocket Real-Time Support
+Live data synchronization with intelligent fallback to polling:
+
+```typescript
+import { RealtimeJsonPlaceholderClient } from 'jsonplaceholder-client-lib';
+
+const realtimeClient = new RealtimeJsonPlaceholderClient('https://jsonplaceholder.typicode.com', {}, {
+  fallbackToPolling: true,
+  pollingInterval: 1000,
+  reconnectInterval: 5000
+});
+
+// Subscribe to real-time post updates
+const subscriptionId = realtimeClient.subscribeToPost(1, (updatedPost) => {
+  console.log('Post updated:', updatedPost);
+});
+
+// Subscribe to all posts updates
+const allPostsId = realtimeClient.subscribeToAllPosts((posts) => {
+  console.log('Posts updated:', posts.length);
+});
+
+// Get real-time stats
+const stats = realtimeClient.getRealtimeStats();
+console.log(`Connection status: ${stats.connectionStatus}`);
+console.log(`Fallback mode: ${stats.fallbackMode}`);
+
+// Cleanup
+realtimeClient.unsubscribe(subscriptionId);
+```
+
 ---
 
 ## Complete Feature Set
@@ -127,6 +159,7 @@ const results = await Promise.all(promises); // Only 1 actual network request
 - 🌐 **Network Optimization** - 40-60% connection efficiency
 - 🚀 **Smart Caching** - Memory/localStorage/sessionStorage
 - 🔄 **Background Refresh** - Stale-while-revalidate
+- ⚡ **WebSocket Real-Time** - Live data synchronization
 - 📊 **Performance Monitoring** - Real-time metrics
 
 </td>
@@ -200,7 +233,8 @@ import {
   BatchOptimizedJsonPlaceholderClient,
   StreamingDataManager,
   NetworkOptimizedJsonPlaceholderClient,
-  AdvancedDeduplicatedClient
+  AdvancedDeduplicatedClient,
+  RealtimeJsonPlaceholderClient
 } from 'jsonplaceholder-client-lib';
 
 // Batch operations for 80-90% performance improvement
@@ -225,6 +259,12 @@ const optimizedPosts = await networkClient.optimizedBatch([
 // Request deduplication for 60-80% fewer requests
 const deduplicatedClient = new AdvancedDeduplicatedClient();
 const stats = deduplicatedClient.getDeduplicationStats();
+
+// Real-time data synchronization with WebSocket
+const realtimeClient = new RealtimeJsonPlaceholderClient();
+const subscriptionId = realtimeClient.subscribeToPost(1, (post) => {
+  console.log('Real-time update:', post);
+});
 ```
 
 ---
@@ -530,7 +570,7 @@ const client = new JsonPlaceholderClient('https://jsonplaceholder.typicode.com',
 
 ## Testing
 
-This library has **217 passing tests** covering all features:
+This library has **224 passing tests** covering all features:
 
 ```bash
 # Run all tests
@@ -621,10 +661,11 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 |---------|--------------|------------------|
 | Performance | **Up to 400% faster** | Baseline |
 | Memory Usage | **95% less** | High memory usage |
+| Real-time Support | **WebSocket + Fallback** | Manual implementation |
 | Security | **Enterprise-grade** | Basic |
 | TypeScript | **100% coverage** | Partial |
 | Bundle Size | **Tree-shakeable** | Monolithic |
-| Testing | **217 tests** | Limited |
+| Testing | **224 tests** | Limited |
 | Documentation | **Comprehensive** | Basic |
 | React Support | **Native hooks** | Manual integration |
 
