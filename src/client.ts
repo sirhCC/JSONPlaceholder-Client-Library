@@ -56,6 +56,9 @@ import {
 import { DataSanitizer, SanitizationConfig } from './sanitization';
 import { RateLimiter, RateLimitResult, RateLimitAnalytics, RateLimitingError } from './rate-limiter';
 import { RequestValidator, ValidationHelpers, ValidationResult } from './validation';
+import { MemorySecurityManager, MemorySecurityConfig, MemorySecurityStats } from './memory-security';
+import { TLSSecurityManager, TLSSecurityConfig, TLSValidationResult, TLSSecurityStats } from './tls-security';
+import { CSRFProtectionManager, CSRFProtectionConfig, CSRFValidationResult, CSRFSecurityStats, CSRFToken } from './csrf-protection';
 
 const defaultApiUrl = 'https://jsonplaceholder.typicode.com';
 
@@ -64,6 +67,9 @@ export interface SecurityConfig {
   maxRedirects?: number; // Maximum number of redirects to follow (default: 5)
   validateStatus?: (status: number) => boolean; // Custom status validation
   sanitization?: Partial<SanitizationConfig>; // Data sanitization settings
+  memory?: Partial<MemorySecurityConfig>; // Memory security settings
+  tls?: Partial<TLSSecurityConfig>; // TLS security settings
+  csrf?: Partial<CSRFProtectionConfig>; // CSRF protection settings
 }
 
 export interface ClientConfig {
@@ -90,6 +96,9 @@ export class JsonPlaceholderClient {
   private developerTools: DeveloperTools;
   private dataSanitizer: DataSanitizer;
   private rateLimiter: RateLimiter;
+  private memorySecurityManager: MemorySecurityManager;
+  private tlsSecurityManager: TLSSecurityManager;
+  private csrfProtectionManager: CSRFProtectionManager;
 
   constructor(baseURL: string = defaultApiUrl, config?: ClientConfig) {
     const securityConfig = {
@@ -118,10 +127,23 @@ export class JsonPlaceholderClient {
     this.developerTools = new DeveloperTools({ enabled: false, ...config?.devModeConfig }, this.logger);
     this.dataSanitizer = new DataSanitizer(securityConfig.sanitization);
     this.rateLimiter = new RateLimiter(config?.rateLimitConfig);
+    
+    // Initialize security managers
+    this.memorySecurityManager = new MemorySecurityManager(securityConfig.memory);
+    this.tlsSecurityManager = new TLSSecurityManager({
+      enabled: false, // Disabled by default to avoid breaking existing functionality
+      ...securityConfig.tls
+    });
+    this.csrfProtectionManager = new CSRFProtectionManager({
+      enabled: false, // Disabled by default to avoid breaking existing functionality
+      ...securityConfig.csrf
+    });
+    
     this.setupDefaultInterceptors();
     this.setupPerformanceTracking();
     this.setupDeveloperInstrumentation();
     this.setupRateLimiting();
+    this.setupSecurityInterceptors();
   }
 
   private setupDefaultInterceptors(): void {
@@ -325,6 +347,69 @@ export class JsonPlaceholderClient {
         throw error;
       }
     });
+  }
+
+  private setupSecurityInterceptors(): void {
+    // TLS Security - Validate and enhance requests
+    this.addRequestInterceptor(async (config) => {
+      const url = config.url || '';
+      
+      // Validate TLS configuration
+      const tlsValidation = this.tlsSecurityManager.validateTLSRequest(url, config);
+      if (!tlsValidation.allowed) {
+        throw new Error(`TLS Security Error: ${tlsValidation.warnings.join(', ')}`);
+      }
+
+      // Apply secure TLS defaults
+      this.tlsSecurityManager.applySecureTLSDefaults(config);
+
+      // Add CSRF token to requests that need it
+      const method = config.method?.toUpperCase();
+      if (method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+        const csrfToken = this.csrfProtectionManager.generateToken();
+        
+        // Add token to headers
+        const csrfHeaders = this.csrfProtectionManager.createRequestHeaders(csrfToken.value);
+        config.headers = { ...config.headers, ...csrfHeaders };
+
+        // Set up cookie configuration for double-submit pattern
+        const cookieConfig = this.csrfProtectionManager.createCookieConfig();
+        // Note: Cookie setting would typically be handled by the browser or server
+        this.logger.debug('CSRF protection enabled for request', { token: csrfToken.value.substring(0, 8) + '...' });
+      }
+
+      return config;
+    });
+
+    // Memory Security - Sanitize response data
+    this.addResponseInterceptor(
+      (response) => {
+        // Validate TLS response
+        const url = response.config.url || '';
+        const tlsValidation = this.tlsSecurityManager.validateTLSResponse(response, url);
+        
+        if (!tlsValidation.allowed) {
+          this.logger.warn('TLS Security Warning', { warnings: tlsValidation.warnings });
+        }
+
+        // Sanitize response data to prevent sensitive data leaks
+        if (response.data && typeof response.data === 'object') {
+          response.data = this.memorySecurityManager.sanitizeObject(response.data);
+        }
+
+        return response;
+      },
+      (error) => {
+        // Log security-related errors
+        const axiosError = error as AxiosError;
+        this.logger.error('Security-related request error', {
+          message: error.message,
+          url: axiosError.config?.url,
+          method: axiosError.config?.method
+        });
+        throw error;
+      }
+    );
   }
 
   private calculateResponseSize(data: unknown): number {
@@ -1332,5 +1417,153 @@ export class JsonPlaceholderClient {
    */
   createLenientValidator(): RequestValidator {
     return ValidationHelpers.createLenientValidator();
+  }
+
+  // ===== SECURITY METHODS =====
+
+  /**
+   * Get memory security statistics
+   */
+  getMemorySecurityStats(): MemorySecurityStats {
+    return this.memorySecurityManager.getStats();
+  }
+
+  /**
+   * Get TLS security statistics
+   */
+  getTLSSecurityStats(): TLSSecurityStats {
+    return this.tlsSecurityManager.getStats();
+  }
+
+  /**
+   * Get CSRF protection statistics
+   */
+  getCSRFSecurityStats(): CSRFSecurityStats {
+    return this.csrfProtectionManager.getStats();
+  }
+
+  /**
+   * Generate a new CSRF token
+   */
+  generateCSRFToken(sessionId?: string, origin?: string): CSRFToken {
+    return this.csrfProtectionManager.generateToken(sessionId, origin);
+  }
+
+  /**
+   * Validate a CSRF token
+   */
+  validateCSRFToken(tokenValue: string, request: {
+    headers?: Record<string, string>;
+    cookies?: Record<string, string>;
+    origin?: string;
+    referer?: string;
+    method?: string;
+  }): CSRFValidationResult {
+    return this.csrfProtectionManager.validateToken(tokenValue, request);
+  }
+
+  /**
+   * Add a pinned certificate for TLS validation
+   */
+  addPinnedCertificate(fingerprint: string): void {
+    this.tlsSecurityManager.addPinnedCertificate(fingerprint);
+  }
+
+  /**
+   * Create secure string that auto-cleans
+   */
+  createSecureString(value: string, ttl?: number): any {
+    return this.memorySecurityManager.createSecureString(value, ttl);
+  }
+
+  /**
+   * Sanitize object to remove sensitive data
+   */
+  sanitizeObject(obj: any): any {
+    return this.memorySecurityManager.sanitizeObject(obj);
+  }
+
+  /**
+   * Force cleanup of all sensitive data
+   */
+  cleanupSensitiveData(): number {
+    return this.memorySecurityManager.cleanupAllSensitiveData();
+  }
+
+  /**
+   * Generate comprehensive security report
+   */
+  generateSecurityReport(): {
+    memory: MemorySecurityStats;
+    tls: any;
+    csrf: any;
+    timestamp: string;
+    overallSecurityScore: number;
+  } {
+    const memoryStats = this.memorySecurityManager.getStats();
+    const tlsReport = this.tlsSecurityManager.generateSecurityReport();
+    const csrfReport = this.csrfProtectionManager.generateSecurityReport();
+
+    // Calculate overall security score (0-100)
+    const memoryScore = memoryStats.memoryLeaksDetected === 0 ? 100 : Math.max(0, 100 - (memoryStats.memoryLeaksDetected * 10));
+    const tlsScore = tlsReport.securityScore;
+    const csrfScore = csrfReport.successRate;
+    const overallSecurityScore = Math.round((memoryScore + tlsScore + csrfScore) / 3);
+
+    return {
+      memory: memoryStats,
+      tls: tlsReport,
+      csrf: csrfReport,
+      timestamp: new Date().toISOString(),
+      overallSecurityScore
+    };
+  }
+
+  /**
+   * Print security report to console
+   */
+  printSecurityReport(): void {
+    const report = this.generateSecurityReport();
+    
+    console.log('\n🔒 Security Report');
+    console.log('==================');
+    console.log(`Overall Security Score: ${report.overallSecurityScore}/100`);
+    console.log(`Timestamp: ${report.timestamp}`);
+    
+    console.log('\n📋 Memory Security:');
+    console.log(`  Sensitive Data References: ${report.memory.currentSensitiveRefs}`);
+    console.log(`  Memory Leaks Detected: ${report.memory.memoryLeaksDetected}`);
+    console.log(`  Total Cleanups: ${report.memory.cleanedAllocations}`);
+    console.log(`  Average Cleanup Time: ${report.memory.averageCleanupTime}ms`);
+    
+    console.log('\n🌐 TLS Security:');
+    console.log(`  Security Score: ${report.tls.securityScore}/100`);
+    console.log(`  TLS 1.3 Adoption: ${report.tls.tls13AdoptionRate}%`);
+    console.log(`  Total Connections: ${report.tls.totalConnections}`);
+    console.log(`  Blocked Connections: ${report.tls.blockedConnections}`);
+    
+    console.log('\n🛡️ CSRF Protection:');
+    console.log(`  Success Rate: ${report.csrf.successRate}%`);
+    console.log(`  Active Tokens: ${report.csrf.activeTokens}`);
+    console.log(`  Total Validations: ${report.csrf.totalValidations}`);
+    console.log(`  Violations: ${report.csrf.doubleSubmitViolations + report.csrf.originViolations}`);
+    
+    if (report.tls.recommendations.length > 0 || report.csrf.recommendations.length > 0) {
+      console.log('\n💡 Recommendations:');
+      [...report.tls.recommendations, ...report.csrf.recommendations].forEach(rec => {
+        console.log(`  • ${rec}`);
+      });
+    }
+    
+    console.log('==================\n');
+  }
+
+  /**
+   * Destroy all security managers and cleanup resources
+   */
+  destroySecurity(): void {
+    this.memorySecurityManager.destroy();
+    this.tlsSecurityManager.getStats(); // TLS manager doesn't have destroy method
+    this.csrfProtectionManager.destroy();
   }
 }
