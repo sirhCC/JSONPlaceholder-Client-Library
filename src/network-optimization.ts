@@ -429,15 +429,22 @@ export class NetworkOptimizedJsonPlaceholderClient extends JsonPlaceholderClient
     config?: unknown, 
     poolConfig?: Partial<ConnectionPoolConfig>
   ) {
-    super(baseURL, config as never);
+    super(baseURL, config as any);
     this.connectionPool = new ConnectionPoolManager(poolConfig);
     
     // Replace the default axios instance with optimized one
     (this as any).client = this.connectionPool.getOptimizedAxios();
     
-    // Preconnect to the API host
+    // Preconnect to the API host if baseURL is provided
     if (baseURL) {
-      this.connectionPool.preconnect(new URL(baseURL).hostname);
+      try {
+        const url = new URL(baseURL);
+        this.connectionPool.preconnect(url.hostname);
+      } catch (error) {
+        // If URL parsing fails, extract hostname manually
+        const hostname = baseURL.replace(/^https?:\/\//, '').split('/')[0];
+        this.connectionPool.preconnect(hostname);
+      }
     }
   }
 
