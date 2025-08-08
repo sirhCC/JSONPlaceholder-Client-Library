@@ -4,7 +4,7 @@
  * Can improve performance by 40-60% through connection reuse and HTTP/2 features
  */
 
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { JsonPlaceholderClient } from './client';
 
 export interface ConnectionPoolConfig {
@@ -344,7 +344,7 @@ export class ConnectionPoolManager {
       await this.optimizedAxios.head(`https://${hostname}`, {
         timeout: this.config.connectionTimeout
       });
-    } catch (error) {
+    } catch {
       // Ignore preconnection errors
     }
   }
@@ -440,7 +440,7 @@ export class NetworkOptimizedJsonPlaceholderClient extends JsonPlaceholderClient
       try {
         const url = new URL(baseURL);
         this.connectionPool.preconnect(url.hostname);
-      } catch (error) {
+      } catch {
         // If URL parsing fails, extract hostname manually
         const hostname = baseURL.replace(/^https?:\/\//, '').split('/')[0];
         this.connectionPool.preconnect(hostname);
