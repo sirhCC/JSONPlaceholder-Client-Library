@@ -4,8 +4,8 @@
  */
 
 import { CircuitBreakerManager, CircuitBreakerConfig, CircuitState } from './circuit-breaker';
-import { RetryManager, RetryConfig, RetryStats } from './advanced-retry';
-import { RequestQueue, QueueConfig, RequestPriority, QueueStats } from './request-queue';
+import { RetryManager, RetryConfig } from './advanced-retry';
+import { RequestQueue, QueueConfig, RequestPriority } from './request-queue';
 
 /**
  * Error recovery configuration
