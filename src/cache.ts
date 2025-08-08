@@ -89,11 +89,24 @@ export class LocalStorageCacheStorage implements ICacheStorage {
   protected keyPrefix: string;
   protected maxSize: number;
   protected logger: ILogger;
+  // Track next-allowed write time per key to avoid writing on every read
+  protected nextWriteAllowed: Map<string, number> = new Map();
+  // Default to 30s unless overridden by CacheManager via config injection
+  protected metadataWriteIntervalMs: number = 30000;
 
   constructor(keyPrefix: string = 'jsonph_cache_', maxSize: number = 100, logger?: ILogger) {
     this.keyPrefix = keyPrefix;
     this.maxSize = maxSize;
     this.logger = logger || createLogger({ level: 'silent' });
+  }
+
+  /**
+   * Configure minimum interval between metadata write-backs
+   */
+  public setMetadataWriteIntervalMs(ms: number): void {
+    if (Number.isFinite(ms) && ms >= 0) {
+      this.metadataWriteIntervalMs = ms;
+    }
   }
 
   async get<T>(key: string): Promise<CacheEntry<T> | null> {
@@ -113,10 +126,20 @@ export class LocalStorageCacheStorage implements ICacheStorage {
         return null;
       }
 
-      // Update access statistics
+      // Update access statistics and rate-limit persistence to storage
       entry.accessCount++;
       entry.lastAccess = Date.now();
-      localStorage.setItem(this.keyPrefix + key, JSON.stringify(entry));
+      const now = Date.now();
+      const nextAllowed = this.nextWriteAllowed.get(key) ?? 0;
+      if (now >= nextAllowed) {
+        this.nextWriteAllowed.set(key, now + this.metadataWriteIntervalMs);
+        try {
+          localStorage.setItem(this.keyPrefix + key, JSON.stringify(entry));
+        } catch (e) {
+          // Swallow to avoid breaking reads
+          this.logger.warn('Failed metadata write-back to localStorage:', e);
+        }
+      }
       
       return entry;
     } catch (error) {
@@ -227,10 +250,19 @@ export class SessionStorageCacheStorage extends LocalStorageCacheStorage {
         return null;
       }
 
-      // Update access statistics
+      // Update access statistics and rate-limit persistence to storage
       entry.accessCount++;
       entry.lastAccess = Date.now();
-      sessionStorage.setItem(this.keyPrefix + key, JSON.stringify(entry));
+      const now = Date.now();
+      const nextAllowed = this.nextWriteAllowed.get(key) ?? 0;
+      if (now >= nextAllowed) {
+        this.nextWriteAllowed.set(key, now + this.metadataWriteIntervalMs);
+        try {
+          sessionStorage.setItem(this.keyPrefix + key, JSON.stringify(entry));
+        } catch (e) {
+          this.logger.warn('Failed metadata write-back to sessionStorage:', e);
+        }
+      }
       
       return entry;
     } catch (error) {
@@ -364,9 +396,17 @@ export class CacheManager {
   private createStorage(): ICacheStorage {
     switch (this.config.storage) {
       case 'localStorage':
-        return new LocalStorageCacheStorage(this.config.keyPrefix, this.config.maxSize, this.logger);
+        {
+          const storage = new LocalStorageCacheStorage(this.config.keyPrefix, this.config.maxSize, this.logger);
+          storage.setMetadataWriteIntervalMs(this.config.metadataWriteIntervalMs ?? 30000);
+          return storage;
+        }
       case 'sessionStorage':
-        return new SessionStorageCacheStorage(this.config.keyPrefix, this.config.maxSize, this.logger);
+        {
+          const storage = new SessionStorageCacheStorage(this.config.keyPrefix, this.config.maxSize, this.logger);
+          storage.setMetadataWriteIntervalMs(this.config.metadataWriteIntervalMs ?? 30000);
+          return storage;
+        }
       default:
         return new MemoryCacheStorage(this.config.maxSize);
     }

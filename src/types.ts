@@ -133,6 +133,11 @@ export interface CacheConfig {
   keyPrefix: string;
   backgroundRefresh: boolean;
   refreshThreshold: number; // Percentage of TTL when background refresh triggers (0-1)
+  /**
+   * Minimum interval between metadata write-backs (lastAccess, accessCount) to browser storage.
+   * Helps reduce synchronous JSON serialization on every read. Defaults to 30000 ms.
+   */
+  metadataWriteIntervalMs?: number;
 }
 
 export interface CacheEntry<T = unknown> {
