@@ -121,8 +121,8 @@ export class RequestDeduplicationManager {
 
     // Create new pending request
     const startTime = Date.now();
-    let resolvers: ((value: T) => void)[] = [];
-    let rejectors: ((reason: any) => void)[] = [];
+  const resolvers: ((value: T) => void)[] = [];
+  const rejectors: ((reason: any) => void)[] = [];
 
     const promise = requestFn()
       .then((result) => {
@@ -146,7 +146,7 @@ export class RequestDeduplicationManager {
         
         return result;
       })
-      .catch((error) => {
+  .catch((error) => {
         // Reject all waiting promises
         rejectors.forEach(reject => reject(error));
         
@@ -340,7 +340,7 @@ export class RequestDeduplicationManager {
       }
       
       this.stats.predictiveHits++;
-    } catch (error) {
+    } catch {
       // Ignore prefetch errors
     }
   }
@@ -509,28 +509,28 @@ export class DeduplicatedJsonPlaceholderClient {
   /**
    * Enhanced getPost with deduplication and predictive caching
    */
-  async getPost(id: number, cacheOptions = {}): Promise<Post> {
+  async getPost(id: number, _cacheOptions = {}): Promise<Post> {
     return this.deduplicationManager.getPost(id);
   }
 
   /**
    * Enhanced getUser with deduplication and predictive caching
    */
-  async getUser(id: number, cacheOptions = {}): Promise<User> {
+  async getUser(id: number, _cacheOptions = {}): Promise<User> {
     return this.deduplicationManager.getUser(id);
   }
 
   /**
    * Enhanced getComments with deduplication and predictive caching
    */
-  async getComments(postId: number, cacheOptions = {}): Promise<Comment[]> {
+  async getComments(postId: number, _cacheOptions = {}): Promise<Comment[]> {
     return this.deduplicationManager.getComments(postId);
   }
 
   /**
    * Enhanced getPosts with deduplication and predictive caching
    */
-  async getPosts(options = {}): Promise<Post[]> {
+  async getPosts(_options = {}): Promise<Post[]> {
     return this.deduplicationManager.getPosts();
   }
 
