@@ -34,6 +34,18 @@
         "no-console": "off",
         "@typescript-eslint/no-explicit-any": "off"
       }
+  },
+    {
+      "files": [
+        "src/**/*-demo.ts",
+        "src/**/*-demo.tsx",
+        "src/**/developer-experience-demo.ts",
+        "src/**/error-recovery-demo.ts"
+      ],
+      "rules": {
+        "no-console": "off",
+        "@typescript-eslint/no-explicit-any": "off"
+      }
     }
   ],
   "ignorePatterns": [
