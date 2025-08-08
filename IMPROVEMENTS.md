@@ -9,10 +9,12 @@ Use this checklist to track actionable improvements across performance, DX, reli
 - [x] Performance: Canonicalize and hash request-dedup keys
   - Replace JSON.stringify on params/headers with a stable ordered serializer; hash large bodies. Reduces CPU and improves dedup hit rate regardless of param order.
   - Implemented in src/utils/serialization.ts and wired into src/request-deduplication.ts and src/cache.ts.
-- [ ] Performance: Cheaper cache size estimation
+- [x] Performance: Cheaper cache size estimation
   - Prefer Content-Length header (when available) or lightweight heuristics; avoid JSON.stringify(data) for size in hot paths.
-- [ ] Performance: Incremental cache stats
+  - Implemented fast, shallow estimator in src/cache.ts (calculateSize), removing JSON.stringify from hot paths.
+- [x] Performance: Incremental cache stats
   - Maintain size and entryCount incrementally; avoid scanning all keys and parsing entries during updateStats().
+  - Implemented sizeIndex + mismatch-aware resync in src/cache.ts; set/delete/clear update stats without full scans.
 - [ ] DX/Lint: Align TypeScript and @typescript-eslint versions
   - Eliminate “TS version not supported” warnings; lock compatible versions across root and packages/react.
 - [ ] DX/Lint: Reduce lint errors via targeted overrides and quick fixes
@@ -22,12 +24,15 @@ Use this checklist to track actionable improvements across performance, DX, reli
 
 ## Performance (expanded)
 
-- [ ] Request key canonicalization and hashing
+- [x] Request key canonicalization and hashing
   - Stable serialize {method,url,params,headers,body?}; hash body > N KB using djb2/xxhash.
+  - Done via stableStringify/fastHash in src/utils/serialization.ts; integrated with src/request-deduplication.ts and src/cache.ts.
 - [ ] Cache size computation rework
   - Use Content-Length; fallback: if data is string/ArrayBuffer, compute directly; else approximate shallowly.
+  - Done: shallow, fast estimator in src/cache.ts (calculateSize) with typed-array/Blob handling.
 - [ ] Incremental stats and eviction metadata
   - Track currentSize/entryCount on set/delete; store minimal LRU metadata to avoid parsing all entries on eviction.
+  - Partial: incremental stats implemented (src/cache.ts sizeIndex + resync). Eviction metadata still pending.
 - [ ] Background refresh smoothing
   - Add jitter and max concurrency to background refreshes to prevent thundering herds under SWR.
 - [ ] WebSocket event processing budget
