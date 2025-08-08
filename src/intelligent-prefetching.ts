@@ -288,7 +288,7 @@ export class IntelligentPrefetchManager {
         this.cleanupExpiredPrefetches();
       }
 
-    } catch (error) {
+  } catch {
       this.stats.wastedPrefetches++;
     } finally {
       this.activePrefetches.delete(prediction.resource);
