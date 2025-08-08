@@ -9,6 +9,13 @@ dist/
 build/
 lib/
 coverage/
+*.coverage/
+
+# Jest/coverage artifacts
+.nyc_output/
+.jest/
+.cache/
+.eslintcache
 
 # TypeScript
 *.tsbuildinfo
@@ -49,6 +56,15 @@ pids/
 
 # Optional npm cache directory
 .npm
+
+# pnpm/yarn caches
+.pnpm-store/
+.yarn/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
 
 # Optional REPL history
 .node_repl_history
