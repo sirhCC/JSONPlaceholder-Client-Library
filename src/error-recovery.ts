@@ -386,13 +386,13 @@ export class FallbackManager {
     } catch (primaryError) {
       // Try fallback operations
       for (let i = 0; i < fallbackOperations.length; i++) {
-        try {
+  try {
           const result = await Promise.race([
             fallbackOperations[i](),
             this.timeoutPromise(this.config.fallbackTimeout)
           ]);
           return result as T;
-        } catch (fallbackError) {
+  } catch {
           // Continue to next fallback
           continue;
         }
