@@ -32,6 +32,27 @@ The library includes **5 major performance optimizations** that provide signific
 | 🧠 **Request Deduplication** | 60-80% fewer requests | ✅ |
 | ⚡ **WebSocket Real-Time** | Live data synchronization | ✅ |
 
+### Cache metadata write throttling
+
+To reduce main-thread blocking when using browser storage caches, metadata write-backs (accessCount/lastAccess) are throttled.
+
+- Config: `cache.metadataWriteIntervalMs` (default: 30000ms)
+- Applies to: `localStorage` and `sessionStorage` backends
+- Effect: reduces frequent `setItem` calls on reads while keeping freshness reasonably up to date
+
+Example:
+
+```ts
+const client = new JsonPlaceholderClient('https://jsonplaceholder.typicode.com', {
+  cache: {
+    enabled: true,
+    storage: 'localStorage',
+    metadataWriteIntervalMs: 15000 // write access metadata at most every 15s per key
+  }
+});
+```
+
+
 ---
 
 ## Type Safety Enhancements
@@ -39,6 +60,7 @@ The library includes **5 major performance optimizations** that provide signific
 We've eliminated **25+ instances of `any` types** and implemented comprehensive TypeScript generics for bulletproof type safety:
 
 ### 🔒 Memory Security with Generics
+
 ```typescript
 import { MemorySecurityManager, SecureString } from 'jsonplaceholder-client-lib';
 
@@ -55,6 +77,7 @@ console.log(secureString.length); // Type-safe access
 ```
 
 ### 🛡️ TLS Security with Proper Typing
+
 ```typescript
 import { TLSSecurityManager, RequestOptions } from 'jsonplaceholder-client-lib';
 
