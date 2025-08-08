@@ -513,7 +513,7 @@ export class RateLimiter {
       } else {
         this.isProcessingQueue = false;
       }
-    } catch (error) {
+  } catch {
       this.isProcessingQueue = false;
       // Reject all queued requests on error
       this.requestQueue.forEach(req => req.reject(new Error('Rate limiter processing error')));
