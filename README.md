@@ -96,6 +96,7 @@ const validation = tlsManager.validateTLSRequest(url, secureOptions);
 ```
 
 ### 🎯 Client Methods with Specific Return Types
+
 ```typescript
 import { JsonPlaceholderClient } from 'jsonplaceholder-client-lib';
 
@@ -109,6 +110,7 @@ const sanitized: SanitizationResult<Post> = client.sanitizeForRequest(postData);
 ```
 
 ### 🧪 Generic Validation Helpers
+
 ```typescript
 import { ValidationHelper } from 'jsonplaceholder-client-lib';
 
@@ -126,6 +128,7 @@ console.log(result.blockedPatterns); // Type: string[]
 ```
 
 ### 📊 Type Safety Metrics
+
 - ✅ **Zero `any` types** in core security modules
 - ✅ **100% generic coverage** for sensitive data operations  
 - ✅ **Complete interface definitions** for all security configurations
@@ -139,6 +142,7 @@ console.log(result.blockedPatterns); // Type: string[]
 Advanced memory protection for sensitive data with automatic cleanup:
 
 ### 🔐 Automatic Sensitive Data Management
+
 ```typescript
 import { MemorySecurityManager, MemorySecurityUtils } from 'jsonplaceholder-client-lib';
 
@@ -159,6 +163,7 @@ const safeCopy = MemorySecurityUtils.safeClone(userObject);
 ```
 
 ### 🧹 SecureString Auto-Cleanup
+
 ```typescript
 // Self-cleaning string wrapper
 const secureApiKey = memoryManager.createSecureString(apiKey, 120000); // 2 minutes TTL
@@ -179,6 +184,7 @@ try {
 ```
 
 ### 📊 Memory Security Stats
+
 ```typescript
 const stats = memoryManager.getStats();
 console.log(`Total allocations: ${stats.totalAllocations}`);
@@ -193,6 +199,7 @@ console.log(`Average cleanup time: ${stats.averageCleanupTime}ms`);
 ## Advanced Features
 
 ### 1. Intelligent Batch Operations
+
 Transform multiple API calls into single optimized requests:
 
 ```typescript
@@ -210,6 +217,7 @@ const posts = await batchClient.batchGetPosts([1, 2, 3]);
 ```
 
 ### 2. Streaming & Virtual Scrolling
+
 Handle large datasets with minimal memory usage:
 
 ```typescript
@@ -227,6 +235,7 @@ console.log(`Loaded ${result.data.length} posts efficiently`);
 ```
 
 ### 3. Advanced Network Optimization
+
 HTTP/2, connection pooling, and intelligent compression:
 
 ```typescript
@@ -244,6 +253,7 @@ console.log(`Connection efficiency: ${stats.connectionPoolEfficiency}%`);
 ```
 
 ### 4. Request Deduplication
+
 Prevents duplicate simultaneous requests and implements intelligent caching:
 
 ```typescript
@@ -262,6 +272,7 @@ const results = await Promise.all(promises); // Only 1 actual network request
 ```
 
 ### 5. WebSocket Real-Time Support
+
 Live data synchronization with intelligent fallback to polling:
 
 ```typescript
