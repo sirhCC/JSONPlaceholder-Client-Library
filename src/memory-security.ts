@@ -117,8 +117,8 @@ export class MemorySecurityManager {
     if (ref.cleanupCallback) {
       try {
         ref.cleanupCallback();
-      } catch (error) {
-        console.warn('Cleanup callback failed:', error);
+      } catch (_error) {
+        console.warn('Cleanup callback failed:', _error);
       }
     }
 
@@ -208,7 +208,7 @@ export class MemorySecurityManager {
     if (typeof global !== 'undefined' && global.gc) {
       try {
         global.gc();
-      } catch (error) {
+      } catch {
         // Silently fail if GC is not exposed
       }
     }
