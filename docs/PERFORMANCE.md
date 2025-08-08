@@ -266,6 +266,32 @@ client.enableCache({
 // - Memory-bounded cache size
 ```
 
+### 1.1 Throttle cache metadata writes (reduces main‑thread overhead)
+
+When using browser storage (localStorage/sessionStorage), each cache read can update access metadata (lastAccess/accessCount). Persisting these on every read adds synchronous JSON work and storage writes. Use `metadataWriteIntervalMs` to batch writes.
+
+```ts
+import { JsonPlaceholderClient } from 'jsonplaceholder-client-lib';
+
+const client = new JsonPlaceholderClient('https://jsonplaceholder.typicode.com', {
+  cache: {
+    enabled: true,
+    storage: 'localStorage',
+    defaultTTL: 5 * 60_000,
+    refreshThreshold: 0.8,
+    metadataWriteIntervalMs: 30_000 // persist metadata at most every 30s per key
+  }
+});
+```
+
+Tuning guidance:
+
+- 10–30s: good default for typical apps; near‑zero UX impact, strong eviction accuracy
+- 60–120s: best for heavy read traffic; eviction recency is approximate but fast
+- 0 (omit): maximum accuracy but higher CPU/storage pressure; not recommended for large caches
+
+This setting complements the internal in‑memory LRU index: evictions remain fast even when metadata persistence is throttled.
+
 ### 2. Use Modular Imports
 
 ```typescript
@@ -635,4 +661,4 @@ For more performance tips, see:
 
 ---
 
-**Build fast, efficient applications! ⚡**
+## Build fast, efficient applications ⚡

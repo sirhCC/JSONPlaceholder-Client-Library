@@ -15,12 +15,13 @@ Use this checklist to track actionable improvements across performance, DX, reli
 - [x] Performance: Incremental cache stats
   - Maintain size and entryCount incrementally; avoid scanning all keys and parsing entries during updateStats().
   - Implemented sizeIndex + mismatch-aware resync in src/cache.ts; set/delete/clear update stats without full scans.
-- [ ] DX/Lint: Align TypeScript and @typescript-eslint versions
+- [x] DX/Lint: Align TypeScript and @typescript-eslint versions
   - Eliminate “TS version not supported” warnings; lock compatible versions across root and packages/react.
+  - Done: pinned TypeScript 5.5.4 and @typescript-eslint 8.x; ESLint 8.x retained for .eslintrc support. Lint runs without version warnings.
 - [ ] DX/Lint: Reduce lint errors via targeted overrides and quick fixes
   - Examples/tests: allow console; prefix unused args with _; relax no-explicit-any for public API generics.
-- [ ] Docs: Document cache.metadataWriteIntervalMs
-  - Add to README and docs/ with examples and tuning guidance.
+- [x] Docs: Document cache.metadataWriteIntervalMs
+  - Added to README and docs/PERFORMANCE.md with examples and tuning guidance.
 
 ## Performance (expanded)
 
