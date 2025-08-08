@@ -159,7 +159,7 @@ export class TLSSecurityManager {
   /**
    * Validate TLS response and headers
    */
-  validateTLSResponse(response: any, url: string): TLSValidationResult {
+  validateTLSResponse(response: any, _url: string): TLSValidationResult {
     const result: TLSValidationResult = {
       allowed: true,
       securityLevel: 'high',
@@ -215,11 +215,10 @@ export class TLSSecurityManager {
     }
 
     // Enable OCSP stapling
-    if (this.config.ocspStapling) {
+  if (this.config.ocspStapling) {
       options.requestOCSP = true;
     }
-
-    // Additional security options
+  // Additional security options
     options.rejectUnauthorized = true;
     options.checkServerIdentity = this.createServerIdentityChecker();
     options.honorCipherOrder = true;
@@ -288,7 +287,7 @@ export class TLSSecurityManager {
   private validateSecurityHeaders(headers: Record<string, string>): string[] {
     const violations: string[] = [];
     
-    for (const [headerName, expectedValue] of Object.entries(this.config.securityHeaders.expectedHeaders)) {
+  for (const [headerName, _expectedValue] of Object.entries(this.config.securityHeaders.expectedHeaders)) {
       const actualValue = headers[headerName] || headers[headerName.toLowerCase()];
       
       if (!actualValue) {
@@ -320,7 +319,7 @@ export class TLSSecurityManager {
     return this.pinnedCerts.has(connectionInfo.certificateFingerprint.toLowerCase());
   }
 
-  private extractConnectionInfo(response: any): TLSConnectionInfo | null {
+  private extractConnectionInfo(_response: any): TLSConnectionInfo | null {
     // This would be implemented based on the HTTP client being used
     // For now, return a mock implementation
     return {
@@ -334,19 +333,19 @@ export class TLSSecurityManager {
   }
 
   private createServerIdentityChecker() {
-    return (hostname: string, cert: any): Error | undefined => {
+    return (_hostname: string, cert: any): Error | undefined => {
       // Custom certificate validation logic
       if (this.config.certificatePinning && this.pinnedCerts.size > 0) {
         const fingerprint = this.getCertificateFingerprint(cert);
         if (!this.pinnedCerts.has(fingerprint.toLowerCase())) {
-          return new Error(`Certificate pinning failure for ${hostname}`);
+          return new Error(`Certificate pinning failure for ${_hostname}`);
         }
       }
       return undefined;
     };
   }
 
-  private getCertificateFingerprint(cert: any): string {
+  private getCertificateFingerprint(_cert: any): string {
     // Mock implementation - would compute actual fingerprint
     return 'mock_fingerprint';
   }
@@ -448,7 +447,7 @@ export const TLSSecurityUtils = {
   /**
    * Get security level for a connection
    */
-  getSecurityLevel(protocol: string, cipherSuite: string): 'low' | 'medium' | 'high' | 'critical' {
+  getSecurityLevel(protocol: string, _cipherSuite: string): 'low' | 'medium' | 'high' | 'critical' {
     if (protocol === 'TLSv1.3') {
       return 'high';
     } else if (protocol === 'TLSv1.2') {
