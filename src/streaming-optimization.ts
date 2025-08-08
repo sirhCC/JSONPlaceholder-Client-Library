@@ -5,7 +5,7 @@
  */
 
 import { JsonPlaceholderClient } from './client';
-import { Post, User, Comment, PaginatedResponse } from './types';
+import { Post, User, Comment } from './types';
 
 export interface StreamConfig {
   enabled: boolean;
@@ -119,7 +119,7 @@ export class StreamingDataManager<T = Post | User | Comment> {
     this.stats.totalItems = processedPosts.length;
 
     // Load initial chunk
-    const initialChunk = this.getChunk('posts', startIndex, endIndex);
+  const _initialChunk = this.getChunk('posts', startIndex, endIndex);
     const chunkData = processedPosts.slice(startIndex, endIndex);
     
     this.storeChunk('posts', startIndex, endIndex, chunkData as unknown as T[]);
