@@ -574,11 +574,61 @@ export class CacheManager {
    * Calculate approximate size of data in bytes
    */
   private calculateSize(data: unknown): number {
-    try {
-      return JSON.stringify(data).length * 2; // Rough estimate for UTF-16
-    } catch {
+    const seen = new Set<unknown>();
+    const MAX_DEPTH = 2; // guard against deep structures
+    const MAX_ENTRIES = 200; // guard against huge collections
+
+    const sizeOf = (value: unknown, depth: number, budget: { entries: number }): number => {
+      if (value == null) return 0;
+      const t = typeof value;
+      if (t === 'string') return (value as string).length * 2; // UTF-16 estimate
+      if (t === 'number') return 8;
+      if (t === 'boolean') return 4;
+      if (t === 'bigint') return 8;
+      if (t === 'symbol' || t === 'function') return 0;
+
+      // Typed buffers
+      if (value instanceof ArrayBuffer) return value.byteLength;
+      if (typeof ArrayBuffer !== 'undefined' && ArrayBuffer.isView && ArrayBuffer.isView(value as unknown as ArrayBufferView)) {
+        return (value as ArrayBufferView).byteLength;
+      }
+      // Blob (browser)
+      if (typeof Blob !== 'undefined' && value instanceof Blob) return value.size;
+      // Date
+      if (value instanceof Date) return 8;
+
+      if (seen.has(value)) return 0; // cycle protection
+      if (depth >= MAX_DEPTH) return 0;
+
+      seen.add(value);
+      let total = 0;
+      if (Array.isArray(value)) {
+        for (let i = 0; i < value.length && budget.entries > 0; i++) {
+          budget.entries--;
+          total += sizeOf(value[i], depth + 1, budget);
+        }
+        return total;
+      }
+
+      // Plain object-like
+      if (typeof value === 'object') {
+        const obj = value as Record<string, unknown>;
+        const keys = Object.keys(obj);
+        for (let i = 0; i < keys.length && budget.entries > 0; i++) {
+          const k = keys[i];
+          budget.entries--;
+          // key cost
+          total += k.length * 2;
+          // value cost
+          total += sizeOf(obj[k], depth + 1, budget);
+        }
+        return total;
+      }
+
       return 0;
-    }
+    };
+
+    return sizeOf(data, 0, { entries: MAX_ENTRIES });
   }
 
   /**
