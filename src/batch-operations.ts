@@ -245,7 +245,7 @@ export class BatchOperationsManager {
     requests: (() => Promise<T>)[]
   ): Promise<T[]> {
     // Analyze request patterns and group similar ones
-    const startTime = Date.now();
+  const _startTime = Date.now();
     
     // Execute in optimized chunks to prevent overwhelming the server
     const chunkSize = Math.min(this.config.maxBatchSize, 10);
