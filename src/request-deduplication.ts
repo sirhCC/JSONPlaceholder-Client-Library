@@ -4,6 +4,7 @@
  */
 
 import { JsonPlaceholderClient } from './client';
+import { canonicalizeKeyParts } from './utils/serialization';
 
 /**
  * Request signature for deduplication
@@ -62,15 +63,13 @@ export class RequestDeduplicationManager {
    * Generate a unique key for request deduplication
    */
   private generateRequestKey(signature: RequestSignature): string {
-    const keyData = {
+    return canonicalizeKeyParts({
       method: signature.method,
       url: signature.url,
       params: signature.params || {},
       body: signature.body,
       headers: signature.headers || {},
-    };
-    
-    return JSON.stringify(keyData);
+    });
   }
 
   /**
