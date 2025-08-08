@@ -57,7 +57,7 @@ import { DataSanitizer, SanitizationConfig } from './sanitization';
 import { RateLimiter, RateLimitResult, RateLimitAnalytics, RateLimitingError } from './rate-limiter';
 import { RequestValidator, ValidationHelpers, ValidationResult } from './validation';
 import { MemorySecurityManager, MemorySecurityConfig, MemorySecurityStats, SecureString } from './memory-security';
-import { TLSSecurityManager, TLSSecurityConfig, TLSValidationResult, TLSSecurityStats, TLSSecurityReport, RequestOptions } from './tls-security';
+import { TLSSecurityManager, TLSSecurityConfig, TLSSecurityStats, TLSSecurityReport, RequestOptions } from './tls-security';
 import { CSRFProtectionManager, CSRFProtectionConfig, CSRFValidationResult, CSRFSecurityStats, CSRFToken, CSRFSecurityReport } from './csrf-protection';
 
 const defaultApiUrl = 'https://jsonplaceholder.typicode.com';
@@ -378,7 +378,7 @@ export class JsonPlaceholderClient {
         config.headers = { ...config.headers, ...csrfHeaders };
 
         // Set up cookie configuration for double-submit pattern
-        const cookieConfig = this.csrfProtectionManager.createCookieConfig();
+  const _cookieConfig = this.csrfProtectionManager.createCookieConfig();
         // Note: Cookie setting would typically be handled by the browser or server
         this.logger.debug('CSRF protection enabled for request', { token: csrfToken.value.substring(0, 8) + '...' });
       }
