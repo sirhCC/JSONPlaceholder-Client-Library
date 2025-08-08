@@ -364,6 +364,8 @@ export class CacheManager {
   private backgroundRefreshPromises = new Map<string, Promise<unknown>>();
   private pendingRequests = new Map<string, Promise<unknown>>();
   private logger: ILogger;
+  // Track per-key sizes to avoid scanning storage on every stats update
+  private sizeIndex: Map<string, number> = new Map();
 
   constructor(config: Partial<CacheConfig> = {}, logger?: ILogger) {
     this.logger = logger || createLogger({ level: 'silent' });
@@ -475,9 +477,23 @@ export class CacheManager {
 
       await this.storage.set(key, entry);
       this.emitEvent('set', key, { size, ttl });
-      
-      // Update stats
-      await this.updateStats();
+
+      // Incremental stats update
+      const prevSize = this.sizeIndex.get(key) || 0;
+      this.sizeIndex.set(key, size);
+      this.stats.currentSize += size - prevSize;
+      // Update entryCount optimistically
+      if (prevSize === 0) {
+        this.stats.entryCount += 1;
+      }
+      // Guard: if storage evicted an entry, resync sizes and counts
+      const storageCount = await this.storage.size();
+      if (storageCount !== this.sizeIndex.size) {
+        await this.resyncStatsFromStorage();
+      } else {
+        // Maintain maxSize snapshot
+        this.stats.maxSize = this.config.maxSize;
+      }
     } catch (error) {
       // Silently handle storage errors - cache failure shouldn't break the application
       this.logger.warn('Cache storage error:', error);
@@ -495,7 +511,17 @@ export class CacheManager {
   async delete(key: string): Promise<void> {
     await this.storage.delete(key);
     this.emitEvent('delete', key);
-    await this.updateStats();
+    // Incremental stats update
+    const prevSize = this.sizeIndex.get(key) || 0;
+    if (prevSize > 0) {
+      this.stats.currentSize -= prevSize;
+      this.stats.entryCount = Math.max(0, this.stats.entryCount - 1);
+      this.sizeIndex.delete(key);
+    }
+    const storageCount = await this.storage.size();
+    if (storageCount !== this.sizeIndex.size) {
+      await this.resyncStatsFromStorage();
+    }
   }
 
   /**
@@ -510,6 +536,7 @@ export class CacheManager {
     this.stats.totalRequests = 0;
     this.stats.entryCount = 0;
     this.stats.currentSize = 0;
+  this.sizeIndex.clear();
     this.emitEvent('clear', 'all');
   }
 
@@ -635,20 +662,32 @@ export class CacheManager {
    * Update cache statistics
    */
   private async updateStats(): Promise<void> {
-    this.stats.entryCount = await this.storage.size();
-    
-    // Calculate current size (approximate)
+    // Fast path: use sizeIndex if counts match storage
+    const storageCount = await this.storage.size();
+    if (storageCount === this.sizeIndex.size) {
+      let total = 0;
+      for (const v of this.sizeIndex.values()) total += v;
+      this.stats.entryCount = storageCount;
+      this.stats.currentSize = total;
+      this.stats.maxSize = this.config.maxSize;
+      return;
+    }
+    await this.resyncStatsFromStorage();
+  }
+
+  private async resyncStatsFromStorage(): Promise<void> {
     const keys = await this.storage.keys();
-    let totalSize = 0;
-    
+    this.sizeIndex.clear();
+    let total = 0;
     for (const key of keys) {
       const entry = await this.storage.get(key);
       if (entry) {
-        totalSize += entry.size;
+        this.sizeIndex.set(key, entry.size);
+        total += entry.size;
       }
     }
-    
-    this.stats.currentSize = totalSize;
+    this.stats.entryCount = this.sizeIndex.size;
+    this.stats.currentSize = total;
     this.stats.maxSize = this.config.maxSize;
   }
 
