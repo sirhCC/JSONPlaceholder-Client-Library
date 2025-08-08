@@ -94,6 +94,8 @@ export class LocalStorageCacheStorage implements ICacheStorage {
   protected nextWriteAllowed: Map<string, number> = new Map();
   // Default to 30s unless overridden by CacheManager via config injection
   protected metadataWriteIntervalMs: number = 30000;
+  // In-memory LRU metadata (key -> lastAccess). Speeds up eviction without parsing all entries.
+  protected lruIndex: Map<string, number> = new Map();
 
   constructor(keyPrefix: string = 'jsonph_cache_', maxSize: number = 100, logger?: ILogger) {
     this.keyPrefix = keyPrefix;
@@ -130,6 +132,8 @@ export class LocalStorageCacheStorage implements ICacheStorage {
       // Update access statistics and rate-limit persistence to storage
       entry.accessCount++;
       entry.lastAccess = Date.now();
+  // Update in-memory LRU metadata
+  this.lruIndex.set(key, entry.lastAccess);
       const now = Date.now();
       const nextAllowed = this.nextWriteAllowed.get(key) ?? 0;
       if (now >= nextAllowed) {
@@ -162,6 +166,8 @@ export class LocalStorageCacheStorage implements ICacheStorage {
       }
 
       localStorage.setItem(this.keyPrefix + key, JSON.stringify(entry));
+  // Update LRU metadata
+  this.lruIndex.set(key, entry.lastAccess);
     } catch (error) {
       this.logger.warn('Failed to write to localStorage cache:', error);
     }
@@ -173,6 +179,8 @@ export class LocalStorageCacheStorage implements ICacheStorage {
     }
 
     localStorage.removeItem(this.keyPrefix + key);
+  this.lruIndex.delete(key);
+  this.nextWriteAllowed.delete(key);
   }
 
   async clear(): Promise<void> {
@@ -182,6 +190,8 @@ export class LocalStorageCacheStorage implements ICacheStorage {
 
     const keys = await this.keys();
     keys.forEach(key => localStorage.removeItem(this.keyPrefix + key));
+  this.lruIndex.clear();
+  this.nextWriteAllowed.clear();
   }
 
   async keys(): Promise<string[]> {
@@ -205,27 +215,42 @@ export class LocalStorageCacheStorage implements ICacheStorage {
 
   protected async evictOldest(): Promise<void> {
     const keys = await this.keys();
-    let oldestKey = '';
-    let oldestTime = Date.now();
-
+    // Prefer in-memory LRU metadata when available
+  let oldestKey = '';
+  let oldestTime = Number.POSITIVE_INFINITY;
+    for (const key of keys) {
+      const ts = this.lruIndex.get(key);
+      if (typeof ts === 'number') {
+        if (ts < oldestTime) {
+          oldestTime = ts;
+          oldestKey = key;
+        }
+      }
+    }
+    if (oldestKey) {
+      await this.delete(oldestKey);
+      return;
+    }
+    // Fallback: parse entries to compute lastAccess when index is empty/stale
+    let fallbackOldestKey = '';
+    let fallbackOldestTime = Date.now();
     for (const key of keys) {
       try {
         const stored = localStorage.getItem(this.keyPrefix + key);
         if (stored) {
           const entry: CacheEntry = JSON.parse(stored);
-          if (entry.lastAccess < oldestTime) {
-            oldestTime = entry.lastAccess;
-            oldestKey = key;
+          this.lruIndex.set(key, entry.lastAccess);
+          if (entry.lastAccess < fallbackOldestTime) {
+            fallbackOldestTime = entry.lastAccess;
+            fallbackOldestKey = key;
           }
         }
-      } catch (error) {
-        // If we can't parse, remove this entry
+      } catch {
         await this.delete(key);
       }
     }
-
-    if (oldestKey) {
-      await this.delete(oldestKey);
+    if (fallbackOldestKey) {
+      await this.delete(fallbackOldestKey);
     }
   }
 }
@@ -254,6 +279,7 @@ export class SessionStorageCacheStorage extends LocalStorageCacheStorage {
       // Update access statistics and rate-limit persistence to storage
       entry.accessCount++;
       entry.lastAccess = Date.now();
+  this.lruIndex.set(key, entry.lastAccess);
       const now = Date.now();
       const nextAllowed = this.nextWriteAllowed.get(key) ?? 0;
       if (now >= nextAllowed) {
@@ -285,6 +311,7 @@ export class SessionStorageCacheStorage extends LocalStorageCacheStorage {
       }
 
       sessionStorage.setItem(this.keyPrefix + key, JSON.stringify(entry));
+  this.lruIndex.set(key, entry.lastAccess);
     } catch (error) {
       this.logger.warn('Failed to write to sessionStorage cache:', error);
     }
@@ -296,6 +323,8 @@ export class SessionStorageCacheStorage extends LocalStorageCacheStorage {
     }
 
     sessionStorage.removeItem(this.keyPrefix + key);
+  this.lruIndex.delete(key);
+  this.nextWriteAllowed.delete(key);
   }
 
   async clear(): Promise<void> {
@@ -305,6 +334,8 @@ export class SessionStorageCacheStorage extends LocalStorageCacheStorage {
 
     const keys = await this.keys();
     keys.forEach(key => sessionStorage.removeItem(this.keyPrefix + key));
+  this.lruIndex.clear();
+  this.nextWriteAllowed.clear();
   }
 
   async keys(): Promise<string[]> {
@@ -329,26 +360,38 @@ export class SessionStorageCacheStorage extends LocalStorageCacheStorage {
   protected async evictOldest(): Promise<void> {
     const keys = await this.keys();
     let oldestKey = '';
-    let oldestTime = Date.now();
-
+    let oldestTime = Number.POSITIVE_INFINITY;
+    for (const key of keys) {
+      const ts = this.lruIndex.get(key);
+      if (typeof ts === 'number' && ts < oldestTime) {
+        oldestTime = ts;
+        oldestKey = key;
+      }
+    }
+    if (oldestKey) {
+      await this.delete(oldestKey);
+      return;
+    }
+    // Fallback: parse entries and refresh index
+    let fallbackOldestKey = '';
+    let fallbackOldestTime = Date.now();
     for (const key of keys) {
       try {
         const stored = sessionStorage.getItem(this.keyPrefix + key);
         if (stored) {
           const entry: CacheEntry = JSON.parse(stored);
-          if (entry.lastAccess < oldestTime) {
-            oldestTime = entry.lastAccess;
-            oldestKey = key;
+          this.lruIndex.set(key, entry.lastAccess);
+          if (entry.lastAccess < fallbackOldestTime) {
+            fallbackOldestTime = entry.lastAccess;
+            fallbackOldestKey = key;
           }
         }
-      } catch (error) {
-        // If we can't parse, remove this entry
+      } catch {
         await this.delete(key);
       }
     }
-
-    if (oldestKey) {
-      await this.delete(oldestKey);
+    if (fallbackOldestKey) {
+      await this.delete(fallbackOldestKey);
     }
   }
 }
