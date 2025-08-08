@@ -6,8 +6,9 @@ Use this checklist to track actionable improvements across performance, DX, reli
 
 ## Top priorities (P0–P1)
 
-- [ ] Performance: Canonicalize and hash request-dedup keys
+- [x] Performance: Canonicalize and hash request-dedup keys
   - Replace JSON.stringify on params/headers with a stable ordered serializer; hash large bodies. Reduces CPU and improves dedup hit rate regardless of param order.
+  - Implemented in src/utils/serialization.ts and wired into src/request-deduplication.ts and src/cache.ts.
 - [ ] Performance: Cheaper cache size estimation
   - Prefer Content-Length header (when available) or lightweight heuristics; avoid JSON.stringify(data) for size in hot paths.
 - [ ] Performance: Incremental cache stats
