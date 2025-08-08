@@ -11,6 +11,7 @@ import {
   ILogger
 } from './types';
 import { createLogger } from './logger';
+import { canonicalizeKeyParts } from './utils/serialization';
 
 /**
  * Memory-based cache storage implementation
@@ -417,21 +418,12 @@ export class CacheManager {
    */
   generateKey(cacheKey: CacheKey): string {
     const { method, url, params, data } = cacheKey;
-    const keyParts = [method.toUpperCase(), url];
-    
-    if (params && Object.keys(params).length > 0) {
-      const sortedParams = Object.keys(params)
-        .sort()
-        .map(key => `${key}=${JSON.stringify(params[key])}`)
-        .join('&');
-      keyParts.push(sortedParams);
-    }
-    
-    if (data) {
-      keyParts.push(JSON.stringify(data));
-    }
-    
-    return keyParts.join('|');
+    return canonicalizeKeyParts({
+      method: method.toUpperCase(),
+      url,
+      params: params || {},
+      data
+    });
   }
 
   /**
