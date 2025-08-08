@@ -30,9 +30,9 @@ Use this checklist to track actionable improvements across performance, DX, reli
 - [ ] Cache size computation rework
   - Use Content-Length; fallback: if data is string/ArrayBuffer, compute directly; else approximate shallowly.
   - Done: shallow, fast estimator in src/cache.ts (calculateSize) with typed-array/Blob handling.
-- [ ] Incremental stats and eviction metadata
+- [x] Incremental stats and eviction metadata
   - Track currentSize/entryCount on set/delete; store minimal LRU metadata to avoid parsing all entries on eviction.
-  - Partial: incremental stats implemented (src/cache.ts sizeIndex + resync). Eviction metadata still pending.
+  - Done: incremental stats in `src/cache.ts` (sizeIndex + resync) and LRU index in `LocalStorageCacheStorage`/`SessionStorageCacheStorage` for fast evictions.
 - [ ] Background refresh smoothing
   - Add jitter and max concurrency to background refreshes to prevent thundering herds under SWR.
 - [ ] WebSocket event processing budget
