@@ -21,12 +21,21 @@
     "@typescript-eslint/explicit-module-boundary-types": "off",
     "@typescript-eslint/no-empty-function": "warn",
     "@typescript-eslint/no-inferrable-types": "off",
-    "no-console": ["warn", { "allow": ["warn", "error"] }],
+  "no-console": ["warn", { "allow": ["warn", "error", "info"] }],
     "no-case-declarations": "error",
     "no-useless-catch": "error",
     "prefer-const": "error",
     "no-var": "error"
   },
+  "overrides": [
+    {
+      "files": ["**/__tests__/**/*.*", "**/*.test.ts", "**/*.test.tsx", "tests/**/*.js", "examples/**/*.js"],
+      "rules": {
+        "no-console": "off",
+        "@typescript-eslint/no-explicit-any": "off"
+      }
+    }
+  ],
   "ignorePatterns": [
     "dist/",
     "node_modules/",
