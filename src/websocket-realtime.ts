@@ -279,9 +279,8 @@ export class WebSocketRealtimeManager {
     if (cacheKey) {
       // Update cache with fresh data if client has cache capability
       try {
-        // Try to update cache if available
         (this.client as any).updateCache?.(cacheKey, event.data);
-      } catch (error) {
+  } catch {
         // Cache update failed, continue without error
       }
     }
@@ -411,7 +410,7 @@ export class WebSocketRealtimeManager {
       try {
         this.websocket.send(JSON.stringify(message));
         this.stats.messagesSent++;
-      } catch (error) {
+  } catch {
         this.queueMessage(queuedMessage);
       }
     } else {

@@ -310,7 +310,7 @@ export class RequestValidator {
               const sanitizedValue = rule.sanitize(value);
               this.setNestedValue(sanitizedData, fieldPath, sanitizedValue);
               warnings.push(`Field '${fieldPath}' was automatically sanitized`);
-            } catch (error) {
+            } catch {
               // Sanitization failed, keep the error
             }
           }
@@ -319,8 +319,8 @@ export class RequestValidator {
           try {
             const sanitizedValue = rule.sanitize(value);
             this.setNestedValue(sanitizedData, fieldPath, sanitizedValue);
-          } catch (error) {
-            warnings.push(`Failed to sanitize field '${fieldPath}': ${(error as Error).message}`);
+          } catch (_error) {
+            warnings.push(`Failed to sanitize field '${fieldPath}': ${(_error as Error).message}`);
           }
         }
       }
