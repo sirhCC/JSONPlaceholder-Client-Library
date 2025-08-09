@@ -1,7 +1,7 @@
 # JSONPlaceholder Client Library
 
 ![CI](https://github.com/sirhCC/JSONPlaceholder-Client-Library/actions/workflows/ci.yml/badge.svg)
-<!-- Optionally add coverage badge after first CI run with coverage reporting service -->
+[![codecov](https://codecov.io/gh/sirhCC/JSONPlaceholder-Client-Library/branch/main/graph/badge.svg)](https://codecov.io/gh/sirhCC/JSONPlaceholder-Client-Library)
 
 High‑performance TypeScript client for JSONPlaceholder with smart caching, request deduplication, robust security, and great DX. Ships ESM/CJS builds and React hooks.
 
