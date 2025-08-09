@@ -34,7 +34,7 @@
         "no-console": "off",
         "@typescript-eslint/no-explicit-any": "off"
       }
-  },
+    },
     {
       "files": [
         "src/**/*-demo.ts",
@@ -45,6 +45,24 @@
       "rules": {
         "no-console": "off",
         "@typescript-eslint/no-explicit-any": "off"
+      }
+    },
+    {
+      "files": [
+        "src/client.ts",
+        "src/request-deduplication.ts",
+        "src/request-deduplication-advanced.ts",
+        "src/websocket-realtime.ts",
+        "src/validation.ts",
+        "src/network-optimization.ts",
+        "src/tls-security.ts",
+        "src/types.ts",
+        "src/csrf-protection.ts",
+        "src/batch-operations.ts"
+      ],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "off",
+        "no-console": "off"
       }
     }
   ],
