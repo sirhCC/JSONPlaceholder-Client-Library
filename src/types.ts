@@ -330,19 +330,19 @@ export interface RateLimitConfig {
 // Validation types
 export interface ValidationRule {
   name: string;
-  validate: (value: any) => boolean;
+  validate: (value: unknown) => boolean;
   message: string;
-  sanitize?: (value: any) => any;
+  sanitize?: (value: unknown) => unknown;
 }
 
 export interface ValidationSchema {
   [key: string]: ValidationRule[];
 }
 
-export interface ValidationResult {
+export interface ValidationResult<T = unknown> {
   isValid: boolean;
   errors: ValidationError[];
-  sanitizedData?: any;
+  sanitizedData?: T;
   warnings: string[];
 }
 
