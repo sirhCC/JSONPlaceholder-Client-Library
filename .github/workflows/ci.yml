@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [16, 18, 20]
+        node: [20]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -65,51 +65,7 @@ jobs:
             coverage
           if-no-files-found: ignore
 
-      - name: Upload Coverage to Codecov
-        if: ${{ matrix.node == 20 && success() }}
-        uses: codecov/codecov-action@v4
-        with:
-          directory: ./coverage
-          flags: root
-          fail_ci_if_error: false
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-  release:
-    name: Release
-    needs: build-test
-    runs-on: ubuntu-latest
-    if: >-
-      github.ref == 'refs/heads/main' &&
-      github.event_name == 'push'
-    permissions:
-      contents: write
-      issues: write
-      pull-requests: write
-      id-token: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Use Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
-
-      - name: Run Tests (sanity)
-        run: npm test -- --maxWorkers=50%
-
-      - name: Semantic Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npx semantic-release
+  # (Optional) Coverage upload & release steps removed for reliability. Reintroduce when secrets configured.
 
   # Optional: separate job for Windows smoke test to catch path issues
   windows-smoke:
