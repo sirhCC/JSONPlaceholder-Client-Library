@@ -65,6 +65,15 @@ jobs:
             coverage
           if-no-files-found: ignore
 
+      - name: Upload Coverage to Codecov
+        if: ${{ matrix.node == 20 && success() }}
+        uses: codecov/codecov-action@v4
+        with:
+          directory: ./coverage
+          flags: root
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
   release:
     name: Release
     needs: build-test
@@ -117,4 +126,4 @@ jobs:
       - name: Build
         run: npm run build
       - name: Root Tests (subset)
-  run: npx jest src/__tests__/client.test.ts --maxWorkers=50%
+        run: npx jest src/__tests__/client.test.ts --maxWorkers=50%
