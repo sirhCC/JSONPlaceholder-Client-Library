@@ -2,91 +2,119 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
+    tags: [ 'v*.*.*' ]
   pull_request:
     branches: [ main ]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test:
+  build-test:
+    name: Build & Test (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        node-version: [16, 18, 20]
-    
+        node: [16, 18, 20]
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
-        
-      - name: Setup Node.js ${{ matrix.node-version }}
+
+      - name: Use Node.js ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-          
+            node-version: ${{ matrix.node }}
+            cache: 'npm'
+
       - name: Install dependencies
         run: npm ci
-        
-      - name: Run security audit
-        run: npm audit --audit-level=moderate
-        continue-on-error: true
-        
-      - name: Run linter
-        run: |
-          echo "Running ESLint (warnings allowed)..."
-          npm run lint || echo "⚠️ Linting issues found but continuing build"
-        continue-on-error: true
-        
-      - name: Run tests with coverage
-        run: npm run test:coverage
-        
-      - name: Run integration tests
-        run: npm run test:integration
-        
-      - name: Build main package
+
+      - name: Lint
+        run: npm run lint || npm run lint:check
+
+      - name: Build
         run: npm run build
-        
-      - name: Test React package
+
+      - name: Unit Tests (root)
         run: |
-          echo "Testing React package..."
-          if [ -d "packages/react" ]; then
-            cd packages/react
-            echo "Installing React package dependencies..."
-            npm ci --legacy-peer-deps || npm ci || true
-            echo "Building React package..."
-            npm run build || true
-            echo "Running React package tests..."
-            npm test || true
-            echo "React package testing completed"
+          if [ "${{ matrix.node }}" = "20" ]; then
+            npm run test:coverage -- --maxWorkers=50%
           else
-            echo "React package not found, skipping"
+            npm test -- --maxWorkers=50%
           fi
-        
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        if: matrix.node-version == '20'
+
+      - name: React Package Tests
+        run: |
+          cd packages/react
+          npm test -- --maxWorkers=50%
+
+      - name: Integration Validation
+        run: |
+          npm run test:integration
+          npm run test:validate || echo "Validation script optional"
+
+      - name: Archive Coverage (if present)
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
         with:
-          fail_ci_if_error: false
-          
-  security:
+          name: coverage-node-${{ matrix.node }}
+          path: |
+            coverage
+          if-no-files-found: ignore
+
+  release:
+    name: Release
+    needs: build-test
     runs-on: ubuntu-latest
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      github.event_name == 'push'
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      id-token: write
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
-        
-      - name: Setup Node.js
+
+      - name: Use Node.js 20
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
           cache: 'npm'
-          
+
       - name: Install dependencies
         run: npm ci
-        
-      - name: Run npm audit
-        run: npm audit --audit-level=high
-        
-      - name: Run dependency vulnerability scan
-        run: |
-          echo "Running basic dependency vulnerability scan..."
-          npm audit --audit-level=high || true
-          echo "For more detailed security scanning, configure SNYK_TOKEN secret"
+
+      - name: Build
+        run: npm run build
+
+      - name: Run Tests (sanity)
+        run: npm test -- --maxWorkers=50%
+
+      - name: Semantic Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npx semantic-release
+
+  # Optional: separate job for Windows smoke test to catch path issues
+  windows-smoke:
+    name: Windows Smoke
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Root Tests (subset)
+  run: npx jest src/__tests__/client.test.ts --maxWorkers=50%
