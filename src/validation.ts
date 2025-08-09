@@ -11,19 +11,19 @@ import { DataSanitizer, SanitizationResult } from './sanitization';
 
 export interface ValidationRule {
   name: string;
-  validate: (value: any) => boolean;
+  validate: (value: unknown) => boolean;
   message: string;
-  sanitize?: (value: any) => any;
+  sanitize?: (value: unknown) => unknown;
 }
 
 export interface ValidationSchema {
   [key: string]: ValidationRule[];
 }
 
-export interface ValidationResult {
+export interface ValidationResult<T = unknown> {
   isValid: boolean;
   errors: ValidationError[];
-  sanitizedData?: any;
+  sanitizedData?: T;
   warnings: string[];
 }
 
@@ -31,7 +31,7 @@ export interface ValidationError {
   field: string;
   rule: string;
   message: string;
-  value: any;
+  value: unknown;
 }
 
 export interface ValidationConfig {
@@ -55,9 +55,9 @@ export class ValidationRules {
   static required(): ValidationRule {
     return {
       name: 'required',
-      validate: (value: any) => value !== null && value !== undefined && value !== '',
+      validate: (value: unknown) => value !== null && value !== undefined && value !== '',
       message: 'Field is required',
-      sanitize: (value: any) => value
+      sanitize: (value: unknown) => value
     };
   }
 
@@ -67,14 +67,14 @@ export class ValidationRules {
   static string(minLength?: number, maxLength?: number): ValidationRule {
     return {
       name: 'string',
-      validate: (value: any) => {
+      validate: (value: unknown) => {
         if (typeof value !== 'string') return false;
         if (minLength !== undefined && value.length < minLength) return false;
         if (maxLength !== undefined && value.length > maxLength) return false;
         return true;
       },
       message: `Must be a string${minLength ? ` (min: ${minLength})` : ''}${maxLength ? ` (max: ${maxLength})` : ''}`,
-      sanitize: (value: any) => typeof value === 'string' ? value.trim() : String(value)
+      sanitize: (value: unknown) => typeof value === 'string' ? value.trim() : String(value)
     };
   }
 
@@ -84,7 +84,7 @@ export class ValidationRules {
   static number(min?: number, max?: number): ValidationRule {
     return {
       name: 'number',
-      validate: (value: any) => {
+      validate: (value: unknown) => {
         const num = Number(value);
         if (isNaN(num)) return false;
         if (min !== undefined && num < min) return false;
@@ -92,7 +92,7 @@ export class ValidationRules {
         return true;
       },
       message: `Must be a number${min !== undefined ? ` (min: ${min})` : ''}${max !== undefined ? ` (max: ${max})` : ''}`,
-      sanitize: (value: any) => Number(value)
+      sanitize: (value: unknown) => Number(value)
     };
   }
 
@@ -102,7 +102,7 @@ export class ValidationRules {
   static integer(min?: number, max?: number): ValidationRule {
     return {
       name: 'integer',
-      validate: (value: any) => {
+      validate: (value: unknown) => {
         const num = Number(value);
         if (isNaN(num) || !Number.isInteger(num)) return false;
         if (min !== undefined && num < min) return false;
@@ -110,7 +110,7 @@ export class ValidationRules {
         return true;
       },
       message: `Must be an integer${min !== undefined ? ` (min: ${min})` : ''}${max !== undefined ? ` (max: ${max})` : ''}`,
-      sanitize: (value: any) => Math.floor(Number(value))
+      sanitize: (value: unknown) => Math.floor(Number(value))
     };
   }
 
@@ -121,9 +121,9 @@ export class ValidationRules {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return {
       name: 'email',
-      validate: (value: any) => typeof value === 'string' && emailRegex.test(value),
+      validate: (value: unknown) => typeof value === 'string' && emailRegex.test(value),
       message: 'Must be a valid email address',
-      sanitize: (value: any) => typeof value === 'string' ? value.toLowerCase().trim() : value
+      sanitize: (value: unknown) => typeof value === 'string' ? value.toLowerCase().trim() : value
     };
   }
 
@@ -133,7 +133,7 @@ export class ValidationRules {
   static url(): ValidationRule {
     return {
       name: 'url',
-      validate: (value: any) => {
+      validate: (value: unknown) => {
         if (typeof value !== 'string') return false;
         try {
           new URL(value);
@@ -143,7 +143,7 @@ export class ValidationRules {
         }
       },
       message: 'Must be a valid URL',
-      sanitize: (value: any) => typeof value === 'string' ? value.trim() : value
+      sanitize: (value: unknown) => typeof value === 'string' ? value.trim() : value
     };
   }
 
@@ -153,26 +153,26 @@ export class ValidationRules {
   static array(minLength?: number, maxLength?: number): ValidationRule {
     return {
       name: 'array',
-      validate: (value: any) => {
+      validate: (value: unknown) => {
         if (!Array.isArray(value)) return false;
         if (minLength !== undefined && value.length < minLength) return false;
         if (maxLength !== undefined && value.length > maxLength) return false;
         return true;
       },
       message: `Must be an array${minLength ? ` (min length: ${minLength})` : ''}${maxLength ? ` (max length: ${maxLength})` : ''}`,
-      sanitize: (value: any) => Array.isArray(value) ? value : [value]
+      sanitize: (value: unknown) => Array.isArray(value) ? value : [value]
     };
   }
 
   /**
    * Enum validation
    */
-  static enum(allowedValues: any[]): ValidationRule {
+  static enum(allowedValues: unknown[]): ValidationRule {
     return {
       name: 'enum',
-      validate: (value: any) => allowedValues.includes(value),
+      validate: (value: unknown) => allowedValues.includes(value),
       message: `Must be one of: ${allowedValues.join(', ')}`,
-      sanitize: (value: any) => value
+      sanitize: (value: unknown) => value
     };
   }
 
@@ -182,9 +182,9 @@ export class ValidationRules {
   static pattern(regex: RegExp, message?: string): ValidationRule {
     return {
       name: 'pattern',
-      validate: (value: any) => typeof value === 'string' && regex.test(value),
+      validate: (value: unknown) => typeof value === 'string' && regex.test(value),
       message: message || `Must match pattern: ${regex.toString()}`,
-      sanitize: (value: any) => value
+      sanitize: (value: unknown) => value
     };
   }
 
@@ -201,12 +201,12 @@ export class ValidationRules {
 
     return {
       name: 'safeHtml',
-      validate: (value: any) => {
+      validate: (value: unknown) => {
         if (typeof value !== 'string') return false;
         return !dangerousPatterns.some(pattern => pattern.test(value));
       },
       message: 'Contains potentially dangerous HTML content',
-      sanitize: (value: any) => {
+      sanitize: (value: unknown) => {
         if (typeof value !== 'string') return value;
         let sanitized = value;
         
@@ -242,12 +242,12 @@ export class ValidationRules {
 
     return {
       name: 'sqlSafe',
-      validate: (value: any) => {
+      validate: (value: unknown) => {
         if (typeof value !== 'string') return true;
         return !sqlPatterns.some(pattern => pattern.test(value));
       },
       message: 'Contains potentially dangerous SQL patterns',
-      sanitize: (value: any) => {
+      sanitize: (value: unknown) => {
         if (typeof value !== 'string') return value;
         let sanitized = value;
         sqlPatterns.forEach(pattern => {
@@ -284,14 +284,14 @@ export class RequestValidator {
   /**
    * Validate data against a schema
    */
-  validate(data: any, schema: ValidationSchema): ValidationResult {
+  validate<T>(data: T, schema: ValidationSchema): ValidationResult<T> {
     const errors: ValidationError[] = [];
     const warnings: string[] = [];
-    const sanitizedData = this.config.autoSanitize ? this.deepClone(data) : undefined;
+    const sanitizedData: T | undefined = this.config.autoSanitize ? this.deepClone(data) : undefined;
 
     // Validate each field in the schema
     for (const [fieldPath, rules] of Object.entries(schema)) {
-      const value = this.getNestedValue(data, fieldPath);
+  const value = this.getNestedValue(data as unknown as Record<string, unknown>, fieldPath);
       
       for (const rule of rules) {
         const isValid = rule.validate(value);
@@ -307,18 +307,18 @@ export class RequestValidator {
           // If not in strict mode, try to sanitize invalid data
           if (!this.config.strictMode && rule.sanitize && sanitizedData) {
             try {
-              const sanitizedValue = rule.sanitize(value);
-              this.setNestedValue(sanitizedData, fieldPath, sanitizedValue);
+        const sanitizedValue = rule.sanitize(value);
+        this.setNestedValue(sanitizedData as unknown as Record<string, unknown>, fieldPath, sanitizedValue);
               warnings.push(`Field '${fieldPath}' was automatically sanitized`);
             } catch {
               // Sanitization failed, keep the error
             }
           }
-        } else if (this.config.autoSanitize && rule.sanitize && sanitizedData) {
+    } else if (this.config.autoSanitize && rule.sanitize && sanitizedData) {
           // Apply sanitization even for valid data
           try {
             const sanitizedValue = rule.sanitize(value);
-            this.setNestedValue(sanitizedData, fieldPath, sanitizedValue);
+      this.setNestedValue(sanitizedData as unknown as Record<string, unknown>, fieldPath, sanitizedValue);
           } catch (_error) {
             warnings.push(`Failed to sanitize field '${fieldPath}': ${(_error as Error).message}`);
           }
@@ -328,13 +328,13 @@ export class RequestValidator {
 
     // Check for unknown fields if not allowed
     if (!this.config.allowUnknownFields) {
-      const unknownFields = this.findUnknownFields(data, schema);
+    const unknownFields = this.findUnknownFields(data as unknown as Record<string, unknown>, schema);
       unknownFields.forEach(field => {
         errors.push({
           field,
           rule: 'unknownField',
-          message: 'Unknown field not allowed',
-          value: this.getNestedValue(data, field)
+      message: 'Unknown field not allowed',
+      value: this.getNestedValue(data as unknown as Record<string, unknown>, field)
         });
       });
     }
@@ -361,7 +361,7 @@ export class RequestValidator {
   /**
    * Quick validation without sanitization
    */
-  isValid(data: any, schema: ValidationSchema): boolean {
+  isValid<T>(data: T, schema: ValidationSchema): boolean {
     const result = this.validate(data, schema);
     return result.isValid;
   }
@@ -376,7 +376,7 @@ export class RequestValidator {
   /**
    * Validate and sanitize in one step
    */
-  validateAndSanitize(data: any, schema: ValidationSchema): ValidationResult {
+  validateAndSanitize<T>(data: T, schema: ValidationSchema): ValidationResult<T> {
     const originalAutoSanitize = this.config.autoSanitize;
     this.config.autoSanitize = true;
     
@@ -388,13 +388,16 @@ export class RequestValidator {
 
   // ===== PRIVATE HELPER METHODS =====
 
-  private getNestedValue(obj: any, path: string): any {
-    return path.split('.').reduce((current, key) => {
-      return current && typeof current === 'object' ? current[key] : undefined;
-    }, obj);
+  private getNestedValue(obj: Record<string, unknown>, path: string): unknown {
+    return path.split('.').reduce<unknown>((current, key) => {
+      if (current && typeof current === 'object' && !Array.isArray(current)) {
+        return (current as Record<string, unknown>)[key];
+      }
+      return undefined;
+    }, obj as unknown);
   }
 
-  private setNestedValue(obj: any, path: string, value: any): void {
+  private setNestedValue(obj: Record<string, unknown>, path: string, value: unknown): void {
     const keys = path.split('.');
     const lastKey = keys.pop()!;
     
@@ -403,12 +406,12 @@ export class RequestValidator {
         current[key] = {};
       }
       return current[key];
-    }, obj);
+    }, obj as Record<string, any>);
 
     target[lastKey] = value;
   }
 
-  private findUnknownFields(data: any, schema: ValidationSchema, prefix = ''): string[] {
+  private findUnknownFields(data: Record<string, unknown>, schema: ValidationSchema, prefix = ''): string[] {
     const unknownFields: string[] = [];
     const schemaKeys = new Set(Object.keys(schema).map(key => 
       prefix ? key.replace(prefix + '.', '') : key
@@ -423,8 +426,9 @@ export class RequestValidator {
         }
 
         // Recursively check nested objects
-        if (data[key] && typeof data[key] === 'object' && !Array.isArray(data[key])) {
-          unknownFields.push(...this.findUnknownFields(data[key], schema, fullPath));
+        const nested = (data as Record<string, unknown>)[key];
+        if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+          unknownFields.push(...this.findUnknownFields(nested as Record<string, unknown>, schema, fullPath));
         }
       }
     }
@@ -432,18 +436,18 @@ export class RequestValidator {
     return unknownFields;
   }
 
-  private deepClone(obj: any): any {
+  private deepClone<T>(obj: T): T {
     if (obj === null || typeof obj !== 'object') return obj;
-    if (obj instanceof Date) return new Date(obj.getTime());
-    if (obj instanceof Array) return obj.map(item => this.deepClone(item));
+    if (obj instanceof Date) return new Date(obj.getTime()) as unknown as T;
+    if (Array.isArray(obj)) return obj.map(item => this.deepClone(item)) as unknown as T;
     if (typeof obj === 'object') {
-      const cloned: any = {};
-      for (const key in obj) {
+      const cloned: Record<string, unknown> = {};
+      for (const key in obj as Record<string, unknown>) {
         if (Object.prototype.hasOwnProperty.call(obj, key)) {
-          cloned[key] = this.deepClone(obj[key]);
+          cloned[key] = this.deepClone((obj as Record<string, unknown>)[key]);
         }
       }
-      return cloned;
+      return cloned as unknown as T;
     }
     return obj;
   }
@@ -616,22 +620,22 @@ export class ValidationHelpers {
   /**
    * Validate JSONPlaceholder API data quickly
    */
-  static validatePost(data: any): ValidationResult {
+  static validatePost<T>(data: T): ValidationResult<T> {
     const validator = this.createSecureValidator();
     return validator.validate(data, CommonSchemas.post());
   }
 
-  static validateComment(data: any): ValidationResult {
+  static validateComment<T>(data: T): ValidationResult<T> {
     const validator = this.createSecureValidator();
     return validator.validate(data, CommonSchemas.comment());
   }
 
-  static validateUser(data: any): ValidationResult {
+  static validateUser<T>(data: T): ValidationResult<T> {
     const validator = this.createSecureValidator();
     return validator.validate(data, CommonSchemas.user());
   }
 
-  static validateSearchParams(data: any): ValidationResult {
+  static validateSearchParams<T>(data: T): ValidationResult<T> {
     const validator = this.createLenientValidator();
     return validator.validate(data, CommonSchemas.searchParams());
   }
@@ -639,7 +643,7 @@ export class ValidationHelpers {
   /**
    * Quickly check if data is safe for API requests
    */
-  static isSafeForRequest(data: any): boolean {
+  static isSafeForRequest(data: unknown): boolean {
     const validator = this.createSecureValidator();
     const result = validator.sanitize(data);
     return !result.blocked || result.blocked.length === 0;

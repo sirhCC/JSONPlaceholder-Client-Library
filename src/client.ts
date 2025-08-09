@@ -1371,28 +1371,28 @@ export class JsonPlaceholderClient {
   /**
    * Validate data using JSONPlaceholder schemas
    */
-  validatePost(data: any): ValidationResult {
+  validatePost<T>(data: T): ValidationResult<T> {
     return ValidationHelpers.validatePost(data);
   }
 
   /**
    * Validate comment data
    */
-  validateComment(data: any): ValidationResult {
+  validateComment<T>(data: T): ValidationResult<T> {
     return ValidationHelpers.validateComment(data);
   }
 
   /**
    * Validate user data
    */
-  validateUser(data: any): ValidationResult {
+  validateUser<T>(data: T): ValidationResult<T> {
     return ValidationHelpers.validateUser(data);
   }
 
   /**
    * Validate search parameters
    */
-  validateSearchParams(data: any): ValidationResult {
+  validateSearchParams<T>(data: T): ValidationResult<T> {
     return ValidationHelpers.validateSearchParams(data);
   }
 
