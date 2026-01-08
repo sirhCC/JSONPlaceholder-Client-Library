@@ -5,6 +5,7 @@
 
 import { JsonPlaceholderClient } from './client';
 import { canonicalizeKeyParts } from './utils/serialization';
+import { DEDUPLICATION_CONSTANTS } from './constants';
 
 /**
  * Request signature for deduplication
@@ -51,10 +52,10 @@ export class RequestDeduplicationManager {
     averageRequestTime: 0,
   };
   private requestTimes: number[] = [];
-  private maxRequestLifetime = 30000; // 30 seconds
+  private maxRequestLifetime: number;
   private cleanupInterval: NodeJS.Timeout | null = null;
 
-  constructor(maxLifetime = 30000) {
+  constructor(maxLifetime: number = DEDUPLICATION_CONSTANTS.MAX_REQUEST_LIFETIME) {
     this.maxRequestLifetime = maxLifetime;
     this.startCleanupInterval();
   }
