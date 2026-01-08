@@ -12,6 +12,7 @@ import {
 } from './types';
 import { createLogger } from './logger';
 import { canonicalizeKeyParts } from './utils/serialization';
+import { CACHE_CONSTANTS } from './constants';
 
 /**
  * Memory-based cache storage implementation
@@ -20,7 +21,7 @@ export class MemoryCacheStorage implements ICacheStorage {
   private cache = new Map<string, CacheEntry>();
   private maxSize: number;
 
-  constructor(maxSize: number = 1000) {
+  constructor(maxSize: number = CACHE_CONSTANTS.DEFAULT_MAX_SIZE) {
     this.maxSize = maxSize;
   }
 
@@ -93,11 +94,11 @@ export class LocalStorageCacheStorage implements ICacheStorage {
   // Track next-allowed write time per key to avoid writing on every read
   protected nextWriteAllowed: Map<string, number> = new Map();
   // Default to 30s unless overridden by CacheManager via config injection
-  protected metadataWriteIntervalMs: number = 30000;
+  protected metadataWriteIntervalMs: number = CACHE_CONSTANTS.DEFAULT_METADATA_WRITE_INTERVAL;
   // In-memory LRU metadata (key -> lastAccess). Speeds up eviction without parsing all entries.
   protected lruIndex: Map<string, number> = new Map();
 
-  constructor(keyPrefix: string = 'jsonph_cache_', maxSize: number = 100, logger?: ILogger) {
+  constructor(keyPrefix: string = 'jsonph_cache_', maxSize: number = CACHE_CONSTANTS.LOCALSTORAGE_MAX_SIZE, logger?: ILogger) {
     this.keyPrefix = keyPrefix;
     this.maxSize = maxSize;
     this.logger = logger || createLogger({ level: 'silent' });
