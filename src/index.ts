@@ -2,6 +2,12 @@
 export { JsonPlaceholderClient } from './client';
 export type { ClientConfig } from './client';
 
+// Constants - useful for configuration
+export * from './constants';
+
+// Extended Types - for advanced usage
+export type { ExtendedRequestConfig, ExtendedResponseData } from './extended-types';
+
 // Core types - always needed
 export type {
   Post,
