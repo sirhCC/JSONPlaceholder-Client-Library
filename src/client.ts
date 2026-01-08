@@ -1,4 +1,6 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
+import { SECURITY_CONSTANTS, PERFORMANCE_CONSTANTS } from './constants';
+import { ExtendedRequestConfig, setExtendedConfigData, getExtendedConfigData } from './extended-types';
 import { 
   Post, 
   Comment, 
@@ -102,8 +104,8 @@ export class JsonPlaceholderClient {
 
   constructor(baseURL: string = defaultApiUrl, config?: ClientConfig) {
     const securityConfig = {
-      timeout: 10000,
-      maxRedirects: 5,
+      timeout: SECURITY_CONSTANTS.DEFAULT_TIMEOUT,
+      maxRedirects: SECURITY_CONSTANTS.MAX_REDIRECTS,
       validateStatus: (status: number) => status >= 200 && status < 300,
       ...config?.securityConfig
     };
@@ -202,16 +204,15 @@ export class JsonPlaceholderClient {
   private setupPerformanceTracking(): void {
     // Add performance tracking to all requests
     this.addRequestInterceptor((config) => {
-      // Add start time to track request duration
-      (config as RequestConfig & { startTime?: number }).startTime = Date.now();
-      return config;
+      // Add start time to track request duration using type-safe helper
+      return setExtendedConfigData(config, { startTime: Date.now() });
     });
 
     this.addResponseInterceptor(
       (response) => {
         // Track successful requests
-        const startTime = (response.config as RequestConfig & { startTime?: number })?.startTime || Date.now();
-        const duration = Date.now() - startTime;
+        const { startTime } = getExtendedConfigData(response.config);
+        const duration = Date.now() - (startTime || Date.now());
         
         this.performanceMonitor.recordMetric({
           timestamp: Date.now(),
@@ -228,8 +229,9 @@ export class JsonPlaceholderClient {
       (error) => {
         // Track failed requests
         const axiosError = error as AxiosError;
-        const startTime = (axiosError.config as RequestConfig & { startTime?: number })?.startTime || Date.now();
-        const duration = Date.now() - startTime;
+        const config = (axiosError.config || {}) as RequestConfig;
+        const { startTime } = getExtendedConfigData(config);
+        const duration = Date.now() - (startTime || Date.now());
         
         this.performanceMonitor.recordMetric({
           timestamp: Date.now(),
@@ -262,7 +264,7 @@ export class JsonPlaceholderClient {
     // Add developer tools request inspection
     this.addRequestInterceptor((config) => {
       const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      (config as RequestConfig & { requestId?: string }).requestId = requestId;
+      const extended = setExtendedConfigData(config, { requestId });
       
       this.developerTools.inspectRequest({
         id: requestId,
@@ -277,25 +279,23 @@ export class JsonPlaceholderClient {
           params: config.params,
           data: config.data
         }),
-        expectedResponseTime: 500 // Default estimate
+        expectedResponseTime: PERFORMANCE_CONSTANTS.DEFAULT_EXPECTED_RESPONSE_TIME
       });
       
-      return config;
+      return extended;
     });
 
     // Add developer tools response inspection
     this.addResponseInterceptor((response) => {
-      const config = response.config as RequestConfig & { requestId?: string; startTime?: number };
-      const requestId = config.requestId || 'unknown';
-      const startTime = config.startTime || Date.now();
+      const { requestId, startTime } = getExtendedConfigData(response.config);
       
       this.developerTools.inspectResponse({
-        requestId,
+        requestId: requestId || 'unknown',
         status: response.status,
         statusText: response.statusText,
         headers: response.headers as Record<string, string>,
         body: response.data,
-        responseTime: Date.now() - startTime,
+        responseTime: Date.now() - (startTime || Date.now()),
         cacheHit: false, // Will be updated by cache events
         timestamp: Date.now(),
         size: this.calculateResponseSize(response.data)
