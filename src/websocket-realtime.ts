@@ -6,6 +6,7 @@
 
 import { JsonPlaceholderClient } from './client';
 import { Post, User, Comment } from './types';
+import { WEBSOCKET_CONSTANTS } from './constants';
 
 export interface WebSocketConfig {
   enabled: boolean;
@@ -21,7 +22,18 @@ export interface WebSocketConfig {
   protocols?: string[];
 }
 
-export interface RealtimeEvent<T = any> {
+export interface WebSocketMessage {
+  type?: string;
+  timestamp?: number;
+  data?: unknown;
+  dataType?: string;
+  id?: string;
+  subscriptionId?: string;
+  channel?: string;
+  error?: string;
+}
+
+export interface RealtimeEvent<T = unknown> {
   type: string;
   data: T;
   timestamp: number;
@@ -33,7 +45,7 @@ export interface RealtimeSubscription {
   id: string;
   channel: string;
   callback: (event: RealtimeEvent) => void;
-  filter?: (data: any) => boolean;
+  filter?: (data: unknown) => boolean;
   active: boolean;
   timestamp: number;
 }
@@ -61,7 +73,7 @@ export interface ConnectionState {
 export interface QueuedMessage {
   id: string;
   type: string;
-  data: any;
+  data: unknown;
   timestamp: number;
   retries: number;
 }
@@ -74,12 +86,12 @@ export class WebSocketRealtimeManager {
   private config: WebSocketConfig = {
     enabled: true,
     autoReconnect: true,
-    reconnectInterval: 1000,
-    maxReconnectAttempts: 5,
-    heartbeatInterval: 30000,
-    messageQueueSize: 100,
+    reconnectInterval: WEBSOCKET_CONSTANTS.DEFAULT_RECONNECT_INTERVAL,
+    maxReconnectAttempts: WEBSOCKET_CONSTANTS.MAX_RECONNECT_ATTEMPTS,
+    heartbeatInterval: WEBSOCKET_CONSTANTS.HEARTBEAT_INTERVAL,
+    messageQueueSize: WEBSOCKET_CONSTANTS.MAX_MESSAGE_QUEUE_SIZE,
     fallbackToPolling: true,
-    pollingInterval: 5000,
+    pollingInterval: WEBSOCKET_CONSTANTS.DEFAULT_POLLING_INTERVAL,
     enableCompression: true,
     protocols: ['jsonplaceholder-realtime']
   };
@@ -147,7 +159,8 @@ export class WebSocketRealtimeManager {
     try {
       await this.createWebSocketConnection();
     } catch (error) {
-      console.warn('WebSocket connection failed, falling back to polling:', error);
+      // Emit event instead of console.warn - let consumers decide how to handle
+      this.emit('connection:fallback', { error, reason: 'WebSocket connection failed' });
       this.handleConnectionError(error as Error);
     }
   }
@@ -232,14 +245,15 @@ export class WebSocketRealtimeManager {
       }
 
     } catch (error) {
-      console.error('Failed to parse WebSocket message:', error);
+      // Emit parse error event for debugging
+      this.emit('message:parse-error', { error });
     }
   }
 
   /**
    * Handle heartbeat messages for latency tracking
    */
-  private handleHeartbeat(message: any): void {
+  private handleHeartbeat(message: WebSocketMessage): void {
     if (message.timestamp) {
       const latency = Date.now() - message.timestamp;
       this.connectionState.latency = latency;
@@ -251,7 +265,7 @@ export class WebSocketRealtimeManager {
   /**
    * Handle real-time data updates
    */
-  private handleDataUpdate(message: any): void {
+  private handleDataUpdate(message: WebSocketMessage): void {
     const event: RealtimeEvent = {
       type: message.dataType || 'update',
       data: message.data,
@@ -279,8 +293,9 @@ export class WebSocketRealtimeManager {
     if (cacheKey) {
       // Update cache with fresh data if client has cache capability
       try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (this.client as any).updateCache?.(cacheKey, event.data);
-  } catch {
+      } catch {
         // Cache update failed, continue without error
       }
     }
@@ -290,13 +305,14 @@ export class WebSocketRealtimeManager {
    * Get cache key from event for cache integration
    */
   private getCacheKeyFromEvent(event: RealtimeEvent): string | null {
+    const data = event.data as { id?: number; postId?: number };
     switch (event.type) {
       case 'post_update':
-        return `post-${event.data.id}`;
+        return data.id ? `post-${data.id}` : null;
       case 'user_update':
-        return `user-${event.data.id}`;
+        return data.id ? `user-${data.id}` : null;
       case 'comment_update':
-        return `comments-${event.data.postId}`;
+        return data.postId ? `comments-${data.postId}` : null;
       case 'posts_update':
         return 'posts-all';
       default:
@@ -307,7 +323,7 @@ export class WebSocketRealtimeManager {
   /**
    * Subscribe to real-time updates for specific data
    */
-  subscribe(channel: string, callback: (event: RealtimeEvent) => void, filter?: (data: any) => boolean): string {
+  subscribe(channel: string, callback: (event: RealtimeEvent) => void, filter?: (data: unknown) => boolean): string {
     const subscriptionId = this.generateSubscriptionId();
     
     const subscription: RealtimeSubscription = {
@@ -355,8 +371,9 @@ export class WebSocketRealtimeManager {
    */
   subscribeToPost(postId: number, callback: (post: Post) => void): string {
     return this.subscribe(`post:${postId}`, (event) => {
-      if (event.type === 'post_update' && event.data.id === postId) {
-        callback(event.data);
+      const data = event.data as { id?: number };
+      if (event.type === 'post_update' && data.id === postId) {
+        callback(event.data as Post);
       }
     });
   }
@@ -366,8 +383,9 @@ export class WebSocketRealtimeManager {
    */
   subscribeToUser(userId: number, callback: (user: User) => void): string {
     return this.subscribe(`user:${userId}`, (event) => {
-      if (event.type === 'user_update' && event.data.id === userId) {
-        callback(event.data);
+      const data = event.data as { id?: number };
+      if (event.type === 'user_update' && data.id === userId) {
+        callback(event.data as User);
       }
     });
   }
@@ -377,8 +395,9 @@ export class WebSocketRealtimeManager {
    */
   subscribeToComments(postId: number, callback: (comments: Comment[]) => void): string {
     return this.subscribe(`comments:${postId}`, (event) => {
-      if (event.type === 'comment_update' && event.data.postId === postId) {
-        callback(event.data.comments || [event.data]);
+      const data = event.data as { postId?: number; comments?: Comment[] };
+      if (event.type === 'comment_update' && data.postId === postId) {
+        callback(data.comments || [event.data as Comment]);
       }
     });
   }
@@ -389,7 +408,7 @@ export class WebSocketRealtimeManager {
   subscribeToAllPosts(callback: (posts: Post[]) => void): string {
     return this.subscribe('posts:all', (event) => {
       if (event.type === 'posts_update') {
-        callback(event.data);
+        callback(event.data as Post[]);
       }
     });
   }
@@ -397,10 +416,10 @@ export class WebSocketRealtimeManager {
   /**
    * Send message through WebSocket or queue if disconnected
    */
-  private sendMessage(message: any): void {
+  private sendMessage(message: WebSocketMessage): void {
     const queuedMessage: QueuedMessage = {
       id: this.generateMessageId(),
-      type: message.type,
+      type: message.type || 'unknown',
       data: message,
       timestamp: Date.now(),
       retries: 0
@@ -435,7 +454,7 @@ export class WebSocketRealtimeManager {
     while (this.messageQueue.length > 0) {
       const message = this.messageQueue.shift()!;
       if (message.retries < 3) {
-        this.sendMessage(message.data);
+        this.sendMessage(message.data as WebSocketMessage);
         message.retries++;
       }
     }
@@ -467,7 +486,8 @@ export class WebSocketRealtimeManager {
     this.connectionState.lastError = error;
     this.stats.connectionStatus = 'error';
 
-    console.error('WebSocket connection error:', error);
+    // Emit error event for consumers to handle
+    this.emit('connection:error', { error });
 
     if (this.config.fallbackToPolling) {
       this.startPollingFallback();
@@ -505,13 +525,14 @@ export class WebSocketRealtimeManager {
    */
   private scheduleReconnect(): void {
     if (this.connectionState.reconnectAttempts >= this.config.maxReconnectAttempts) {
-      console.error('Max reconnection attempts reached');
+      // Emit max attempts reached event
+      this.emit('connection:max-retries', { attempts: this.connectionState.reconnectAttempts });
       return;
     }
 
     const delay = Math.min(
       this.config.reconnectInterval * Math.pow(2, this.connectionState.reconnectAttempts),
-      30000 // Max 30 seconds
+      WEBSOCKET_CONSTANTS.MAX_RECONNECT_DELAY
     );
 
     this.reconnectTimer = setTimeout(() => {
@@ -531,7 +552,8 @@ export class WebSocketRealtimeManager {
     }
 
     this.stats.fallbackMode = true;
-    console.log('Starting polling fallback');
+    // Emit polling started event
+    this.emit('polling:started', { interval: this.config.pollingInterval });
 
     this.pollingTimer = setInterval(async () => {
       try {
@@ -542,7 +564,8 @@ export class WebSocketRealtimeManager {
           }
         }
       } catch (error) {
-        console.error('Polling error:', error);
+        // Emit polling error event
+        this.emit('polling:error', { error });
       }
     }, this.config.pollingInterval);
   }
@@ -552,7 +575,7 @@ export class WebSocketRealtimeManager {
    */
   private async pollForUpdates(subscription: RealtimeSubscription): Promise<void> {
     try {
-      let data: any;
+      let data: Post | Post[] | User | Comment[] | undefined;
       
       // Determine what to poll based on channel
       if (subscription.channel.startsWith('post:')) {
@@ -583,7 +606,8 @@ export class WebSocketRealtimeManager {
         }
       }
     } catch (error) {
-      console.error('Failed to poll for updates:', error);
+      // Emit poll update error event
+      this.emit('polling:update-error', { error, subscription: subscription.channel });
     }
   }
 
@@ -621,7 +645,8 @@ export class WebSocketRealtimeManager {
             try {
               subscription.callback(event);
             } catch (error) {
-              console.error('Error in subscription callback:', error);
+              // Emit callback error for debugging
+              this.emit('subscription:callback-error', { error, subscriptionId: subscription.id });
             }
           }
         }
@@ -642,13 +667,14 @@ export class WebSocketRealtimeManager {
    * Get channel from event
    */
   private getChannelFromEvent(event: RealtimeEvent): string {
+    const data = event.data as { id?: number; postId?: number };
     switch (event.type) {
       case 'post_update':
-        return `post:${event.data.id}`;
+        return data.id ? `post:${data.id}` : event.type;
       case 'user_update':
-        return `user:${event.data.id}`;
+        return data.id ? `user:${data.id}` : event.type;
       case 'comment_update':
-        return `comments:${event.data.postId}`;
+        return data.postId ? `comments:${data.postId}` : event.type;
       case 'posts_update':
         return 'posts:all';
       default:
@@ -659,14 +685,15 @@ export class WebSocketRealtimeManager {
   /**
    * Emit global events
    */
-  private emit(eventType: string, data: any): void {
+  private emit(eventType: string, data: unknown): void {
     const listeners = this.eventListeners.get(eventType);
     if (listeners) {
       listeners.forEach(listener => {
         try {
           listener({ type: eventType, data, timestamp: Date.now(), id: this.generateEventId(), source: 'websocket' });
-        } catch (error) {
-          console.error('Error in event listener:', error);
+        } catch (_error) {
+          // Silently fail listener errors to prevent cascade failures
+          // Consumers should handle their own errors
         }
       });
     }
@@ -698,22 +725,23 @@ export class WebSocketRealtimeManager {
   /**
    * Handle server errors
    */
-  private handleServerError(message: any): void {
-    console.error('Server error:', message.error);
+  private handleServerError(message: WebSocketMessage): void {
+    // Use emit for consistency - consumers can log via event listeners
     this.emit('server:error', message);
   }
 
   /**
    * Handle subscription acknowledgment
    */
-  private handleSubscriptionAck(message: any): void {
-    console.log('Subscription acknowledged:', message.subscriptionId);
+  private handleSubscriptionAck(message: WebSocketMessage): void {
+    // Emit event for subscribers to handle
+    this.emit('subscription:ack', message);
   }
 
   /**
    * Handle custom messages
    */
-  private handleCustomMessage(message: any): void {
+  private handleCustomMessage(message: WebSocketMessage): void {
     this.emit('message:custom', message);
   }
 
