@@ -2,7 +2,9 @@
  * Stable serialization and lightweight hashing utilities for key generation.
  */
 
-const LARGE_VALUE_HASH_THRESHOLD = 2048; // 2KB default threshold
+import { SECURITY_CONSTANTS } from '../constants';
+
+const LARGE_VALUE_HASH_THRESHOLD = SECURITY_CONSTANTS.LARGE_VALUE_HASH_THRESHOLD;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (Object.prototype.toString.call(value) !== '[object Object]') return false;
